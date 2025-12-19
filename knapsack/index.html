@@ -3,6 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Công cụ trực quan hóa thuật toán Knapsack (Cái túi) chuyên nghiệp. Học Dynamic Programming qua hình ảnh sống động."
+    />
     <base href="/hsg-tin-hoc/" />
     <title>Học thuật toán Knapsack - Trực quan & Chuyên nghiệp</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -10,293 +14,516 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
-    <style>
-      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Fira+Code:wght@400;500&display=swap");
-      body {
-        font-family: "Inter", sans-serif;
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ["Outfit", "sans-serif"],
+              mono: ["Fira Code", "monospace"],
+            },
+            colors: {
+              brand: {
+                50: "#f5f3ff",
+                100: "#ede9fe",
+                200: "#ddd6fe",
+                300: "#c4b5fd",
+                400: "#a78bfa",
+                500: "#8b5cf6",
+                600: "#7c3aed",
+                700: "#6d28d9",
+                800: "#5b21b6",
+                900: "#4c1d95",
+                950: "#2e1065",
+              },
+            },
+            animation: {
+              "pulse-slow": "pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+              float: "float 3s ease-in-out infinite",
+            },
+            keyframes: {
+              float: {
+                "0%, 100%": { transform: "translateY(0)" },
+                "50%": { transform: "translateY(-10px)" },
+              },
+            },
+          },
+        },
+      };
+    </script>
+
+    <style type="text/tailwindcss">
+      @layer components {
+        .glass-card {
+          @apply bg-white/80 backdrop-blur-xl border border-white/20 shadow-xl;
+        }
+        .btn-primary {
+          @apply bg-brand-600 hover:bg-brand-700 text-white px-6 py-2.5 rounded-2xl font-semibold transition-all duration-300 shadow-lg shadow-brand-900/20 hover:shadow-brand-900/30 active:scale-95 disabled:opacity-50 disabled:pointer-events-none;
+        }
+        .btn-secondary {
+          @apply bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl font-medium transition-all duration-300 active:scale-95 disabled:opacity-50;
+        }
+        .code-line {
+          @apply px-4 py-1 border-l-2 border-transparent transition-all duration-200;
+        }
+        .code-line.active {
+          @apply bg-brand-500/10 border-brand-500 text-brand-700 font-medium;
+        }
+        .dp-cell {
+          @apply w-12 h-14 md:w-16 md:h-20 flex flex-col items-center justify-center rounded-2xl border-2 transition-all duration-500 relative;
+        }
       }
-      .code-font {
-        font-family: "Fira Code", monospace;
-      }
-      .cell-target {
-        background-color: #22c55e !important;
-        color: white;
-        transform: translateY(-5px);
-        box-shadow: 0 10px 15px -3px rgba(34, 197, 94, 0.4);
-        border-color: #16a34a;
-      }
-      .cell-source {
-        background-color: #3b82f6 !important;
-        color: white;
-        border-color: #2563eb;
-      }
-      .code-active {
-        background-color: rgba(250, 204, 21, 0.2);
-        border-left: 4px solid #facc15;
-      }
+
       .scroll-custom::-webkit-scrollbar {
         width: 6px;
+        height: 6px;
       }
       .scroll-custom::-webkit-scrollbar-track {
-        background: #f1f1f1;
+        background: transparent;
       }
       .scroll-custom::-webkit-scrollbar-thumb {
-        background: #888;
+        background: #cbd5e1;
         border-radius: 10px;
       }
-      .item-active {
-        border-color: #6366f1 !important;
-        background-color: #f5f3ff !important;
-        transform: scale(1.02);
-        box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.2);
-        z-index: 10;
+      .scroll-custom::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
       }
-      @keyframes pulse-glow {
-        0%,
-        100% {
-          box-shadow: 0 10px 15px -3px rgba(34, 197, 94, 0.4);
-        }
-        50% {
-          box-shadow: 0 15px 25px -3px rgba(34, 197, 94, 0.7);
-        }
-      }
+
       .cell-target {
-        background: linear-gradient(135deg, #22c55e, #16a34a) !important;
+        background: linear-gradient(135deg, #22c55e, #10b981) !important;
         color: white;
+        border-color: #059669 !important;
         transform: translateY(-8px) scale(1.1);
-        box-shadow: 0 15px 25px -5px rgba(34, 197, 94, 0.5);
-        border-color: #059669;
+        box-shadow: 0 15px 30px -10px rgba(16, 185, 129, 0.25);
         z-index: 20;
-        animation: pulse-glow 1.5s infinite;
+      }
+      .cell-source {
+        background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+        color: white;
+        border-color: #1d4ed8 !important;
+        transform: scale(1.05);
+        box-shadow: 0 10px 20px -10px rgba(59, 130, 246, 0.2);
+      }
+      .item-active {
+        @apply ring-4 ring-brand-500/30 border-brand-500 bg-brand-50 scale-[1.02] -translate-y-1 shadow-2xl z-10;
+      }
+
+      body {
+        background-image: radial-gradient(
+            at 0% 0%,
+            hsla(253, 16%, 7%, 1) 0,
+            transparent 50%
+          ),
+          radial-gradient(at 50% 0%, hsla(225, 39%, 30%, 1) 0, transparent 50%),
+          radial-gradient(at 100% 0%, hsla(339, 49%, 30%, 1) 0, transparent 50%);
+        background-attachment: fixed;
       }
     </style>
   </head>
-  <body class="bg-slate-50 min-h-screen text-slate-900">
-    <header
-      class="bg-white border-b border-slate-200 py-4 px-8 flex justify-between items-center sticky top-0 z-50 shadow-sm"
-    >
-      <div class="flex items-center gap-3">
-        <div class="bg-indigo-600 p-2 rounded-lg text-white">
-          <i class="fas fa-briefcase text-xl"></i>
-        </div>
-        <h1
-          class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600"
-        >
-          Knapsack Visualizer
-        </h1>
-      </div>
-      <div class="flex items-center gap-4">
-        <div class="flex items-center gap-2 bg-slate-100 p-1 rounded-lg">
-          <button
-            id="btnPrev"
-            onclick="prevStep()"
-            class="p-2 hover:bg-white rounded-md transition shadow-sm disabled:opacity-30"
-          >
-            <i class="fas fa-chevron-left"></i>
-          </button>
-          <button
-            id="btnPlay"
-            onclick="toggleAuto()"
-            class="px-4 py-2 bg-indigo-600 text-white rounded-md font-semibold hover:bg-indigo-700 transition flex items-center gap-2 min-w-[120px] justify-center"
-          >
-            <i class="fas fa-play"></i> <span>Tự động</span>
-          </button>
-          <button
-            id="btnNext"
-            onclick="nextStep()"
-            class="p-2 hover:bg-white rounded-md transition shadow-sm disabled:opacity-30"
-          >
-            <i class="fas fa-chevron-right"></i>
-          </button>
-        </div>
-        <button
-          onclick="resetSim()"
-          class="p-2 text-slate-500 hover:text-indigo-600"
-          title="Làm mới"
-        >
-          <i class="fas fa-sync-alt"></i>
-        </button>
-      </div>
-    </header>
+  <body
+    class="bg-slate-950 min-h-screen text-slate-100 selection:bg-brand-500/30"
+  >
+    <!-- Overlay for background softness -->
+    <div class="fixed inset-0 bg-slate-50/10 backdrop-blur-3xl -z-10"></div>
 
-    <main class="p-6 max-w-[1600px] mx-auto grid grid-cols-12 gap-6">
-      <aside class="col-span-12 lg:col-span-3 space-y-6">
-        <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
-          <h2
-            class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4"
-          >
-            Cấu hình bài toán
-          </h2>
-          <div class="space-y-4">
-            <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1"
-                >Loại thuật toán</label
-              >
-              <select
-                id="algoType"
-                class="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                onchange="resetSim()"
-              >
-                <option value="01">0/1 Knapsack (Lấy 1 lần)</option>
-                <option value="unbounded">Unbounded (Lấy vô hạn)</option>
-              </select>
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1"
-                  >Vật phẩm (N)</label
-                >
-                <input
-                  type="number"
-                  id="inputN"
-                  value="3"
-                  min="1"
-                  max="8"
-                  class="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-sm"
-                  onchange="updateItemsUI()"
-                />
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1"
-                  >Sức chứa (M)</label
-                >
-                <input
-                  type="number"
-                  id="inputM"
-                  value="7"
-                  min="1"
-                  max="15"
-                  class="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-sm"
-                  onchange="resetSim()"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div
-          class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex-1"
-        >
-          <h2
-            class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4"
-          >
-            Chi tiết vật phẩm
-          </h2>
+    <header class="sticky top-0 z-50 px-4 py-3 md:px-8 md:py-4">
+      <nav
+        class="max-w-[1600px] mx-auto glass-card rounded-3xl flex items-center justify-between px-6 py-2 border-white/10 bg-white/5"
+      >
+        <div class="flex items-center gap-4">
           <div
-            id="itemsContainer"
-            class="space-y-4 max-h-[400px] overflow-y-auto overflow-x-visible p-4 scroll-custom"
-          ></div>
-          <button
-            onclick="resetSim()"
-            class="w-full mt-4 bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition shadow-lg shadow-slate-200"
+            class="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-brand-500 to-violet-600 rounded-2xl flex items-center justify-center text-white shadow-md shadow-brand-500/10 animate-float"
           >
-            Áp dụng thay đổi
-          </button>
-        </div>
-      </aside>
-
-      <div class="col-span-12 lg:col-span-6 space-y-6">
-        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
-          <div class="flex justify-between items-center mb-6">
-            <h2 class="font-bold text-slate-800">
-              Bảng Quy hoạch động (DP Table)
-            </h2>
-            <div class="flex items-center gap-4 text-xs">
-              <span class="flex items-center gap-1"
-                ><span class="w-3 h-3 rounded bg-blue-500"></span> Nguồn
-                (j-w)</span
-              >
-              <span class="flex items-center gap-1"
-                ><span class="w-3 h-3 rounded bg-green-500"></span> Đang tính
-                (j)</span
-              >
-            </div>
+            <i class="fas fa-briefcase text-lg md:text-xl"></i>
           </div>
-          <div
-            id="dpGrid"
-            class="flex flex-wrap gap-4 justify-center mb-4 p-6"
-          ></div>
-        </div>
-
-        <div
-          id="statusCard"
-          class="bg-indigo-900 text-white rounded-2xl p-6 shadow-xl relative overflow-hidden"
-        >
-          <div class="relative z-10">
-            <div class="flex items-center gap-2 mb-2 opacity-70 italic text-sm">
-              <i class="fas fa-lightbulb text-yellow-400"></i> Trạng thái hiện
-              tại:
-            </div>
-            <p
-              id="explanation"
-              class="text-xl font-medium leading-relaxed italic"
+          <div>
+            <h1
+              class="text-lg md:text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400"
             >
-              Hãy nhấn nút "Tiếp theo" để bắt đầu mô phỏng thuật toán.
+              Knapsack Visualizer
+            </h1>
+            <p
+              class="text-[10px] md:text-xs text-slate-500 font-medium uppercase tracking-widest hidden md:block"
+            >
+              Interactive Algorithm Tool
             </p>
           </div>
-          <div
-            class="absolute right-[-20px] bottom-[-20px] text-9xl text-white opacity-5"
-          >
-            <i class="fas fa-brain"></i>
-          </div>
         </div>
-      </div>
 
-      <div class="col-span-12 lg:col-span-3">
-        <div
-          class="bg-[#1e293b] rounded-2xl shadow-xl border border-slate-800 overflow-hidden h-full flex flex-col"
-        >
+        <div class="hidden lg:flex items-center gap-4">
           <div
-            class="bg-slate-800 px-4 py-3 border-b border-slate-700 flex items-center justify-between text-slate-300"
+            class="flex items-center gap-1 bg-slate-900/50 p-1.5 rounded-2xl border border-white/5"
           >
-            <span class="text-xs font-bold uppercase tracking-widest"
-              ><i class="fas fa-code mr-2"></i> Logic C++</span
+            <button
+              id="btnPrev"
+              onclick="prevStep()"
+              class="p-2.5 hover:bg-white/10 rounded-xl transition-all disabled:opacity-20"
             >
-            <span class="text-[10px] bg-slate-700 px-2 py-1 rounded"
-              >C++ 17</span
+              <i class="fas fa-arrow-left"></i>
+            </button>
+            <button
+              id="btnPlay"
+              onclick="toggleAuto()"
+              class="btn-primary flex items-center gap-2 min-w-[140px] justify-center group"
             >
+              <i class="fas fa-play group-[.paused]:hidden"></i>
+              <span class="group-[.paused]:hidden">Chạy tự động</span>
+              <i class="fas fa-pause hidden group-[.paused]:block"></i>
+              <span class="hidden group-[.paused]:block">Tạm dừng</span>
+            </button>
+            <button
+              id="btnNext"
+              onclick="nextStep()"
+              class="p-2.5 hover:bg-white/10 rounded-xl transition-all disabled:opacity-20"
+            >
+              <i class="fas fa-arrow-right"></i>
+            </button>
           </div>
-          <div
-            class="p-4 code-font text-sm leading-6 flex-1 text-slate-300 overflow-hidden"
+          <button
+            onclick="resetSim()"
+            class="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-all"
+            title="Làm mới"
           >
-            <div id="L1" class="px-2 transition">
-              for (int i = 1; i <= N; i++) {
+            <i class="fas fa-rotate"></i>
+          </button>
+        </div>
+
+        <!-- Mobile Controls Toggle -->
+        <div class="lg:hidden flex items-center gap-2">
+          <button onclick="resetSim()" class="p-2 text-slate-400">
+            <i class="fas fa-rotate"></i>
+          </button>
+          <button
+            id="mobileNext"
+            onclick="nextStep()"
+            class="p-3 bg-brand-600 rounded-xl text-white"
+          >
+            <i class="fas fa-step-forward"></i>
+          </button>
+        </div>
+      </nav>
+    </header>
+
+    <main class="p-4 md:p-6 max-w-[1600px] mx-auto">
+      <div class="grid grid-cols-12 gap-6">
+        <!-- Sidebar Config -->
+        <aside class="col-span-12 lg:col-span-3 space-y-6">
+          <section
+            class="glass-card rounded-[2rem] p-6 bg-white/5 border-white/5"
+          >
+            <div class="flex items-center gap-3 mb-6">
+              <span class="w-2 h-6 bg-brand-500 rounded-full"></span>
+              <h2
+                class="text-sm font-bold text-slate-400 uppercase tracking-widest"
+              >
+                Cấu hình
+              </h2>
             </div>
-            <div id="L2" class="px-2 pl-4 transition">
-              for (int j =
-              <span id="loopCode" class="text-yellow-400">...</span>) {
+
+            <div class="space-y-5">
+              <div class="space-y-2">
+                <label class="text-xs font-semibold text-slate-500 px-1"
+                  >Thuật toán</label
+                >
+                <div class="relative group">
+                  <select
+                    id="algoType"
+                    onchange="resetSim()"
+                    class="w-full bg-slate-900/50 border border-white/10 p-3.5 rounded-2xl text-sm focus:ring-2 focus:ring-brand-500 outline-none appearance-none transition-all cursor-pointer"
+                  >
+                    <option value="01">0/1 Knapsack (Lấy 1 lần)</option>
+                    <option value="unbounded">Unbounded (Lấy vô hạn)</option>
+                  </select>
+                  <i
+                    class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none transition-transform group-focus-within:rotate-180"
+                  ></i>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-4">
+                <div class="space-y-2">
+                  <label class="text-xs font-semibold text-slate-500 px-1"
+                    >Vật phẩm (N)</label
+                  >
+                  <input
+                    type="number"
+                    id="inputN"
+                    value="3"
+                    min="1"
+                    max="10"
+                    class="w-full bg-slate-900/50 border border-white/10 p-3.5 rounded-2xl text-sm transition-all focus:ring-2 focus:ring-brand-500 outline-none"
+                    onchange="updateItemsUI()"
+                  />
+                </div>
+                <div class="space-y-2">
+                  <label class="text-xs font-semibold text-slate-500 px-1"
+                    >Sức chứa (M)</label
+                  >
+                  <input
+                    type="number"
+                    id="inputM"
+                    value="7"
+                    min="1"
+                    max="20"
+                    class="w-full bg-slate-900/50 border border-white/10 p-3.5 rounded-2xl text-sm transition-all focus:ring-2 focus:ring-brand-500 outline-none"
+                    onchange="resetSim()"
+                  />
+                </div>
+              </div>
             </div>
-            <div id="L3" class="px-2 pl-8 transition">
-              ll <span class="text-blue-400">gia_tri_moi</span> = dp[j-w[i]] +
-              v[i];
+          </section>
+
+          <section
+            class="glass-card rounded-[2rem] p-6 bg-white/5 border-white/5 flex flex-col max-h-[600px]"
+          >
+            <div class="flex items-center justify-between mb-6">
+              <div class="flex items-center gap-3">
+                <span class="w-2 h-6 bg-pink-500 rounded-full"></span>
+                <h2
+                  class="text-sm font-bold text-slate-400 uppercase tracking-widest"
+                >
+                  Dữ liệu
+                </h2>
+              </div>
+              <span
+                class="text-[10px] bg-slate-800 text-slate-400 px-2.5 py-1 rounded-full border border-white/5"
+                id="itemCount"
+                >3 Items</span
+              >
             </div>
-            <div id="L4" class="px-2 pl-8 transition">
-              if (<span class="text-blue-400">gia_tri_moi</span> > dp[j]) {
-            </div>
-            <div id="L5" class="px-2 pl-12 transition text-green-400">
-              dp[j] = gia_tri_moi;
-            </div>
-            <div id="L6" class="px-2 pl-8 transition">}</div>
-            <div id="L7" class="px-2 pl-4 transition">}</div>
-            <div id="L8" class="px-2 transition">}</div>
-          </div>
-          <div class="p-4 bg-slate-800/50">
-            <label
-              class="text-[10px] font-bold text-slate-500 uppercase block mb-2"
-              >Tốc độ mô phỏng</label
+
+            <div
+              id="itemsContainer"
+              class="space-y-4 overflow-y-auto scroll-custom pr-2 -mr-2"
             >
-            <input
-              type="range"
-              id="speed"
-              min="200"
-              max="1800"
-              value="1000"
-              class="w-full accent-indigo-500"
-            />
-          </div>
+              <!-- Items will be injected here -->
+            </div>
+
+            <button
+              onclick="resetSim()"
+              class="w-full mt-6 btn-primary !rounded-2xl flex items-center justify-center gap-2"
+            >
+              <i class="fas fa-bolt"></i> Cập nhật ngay
+            </button>
+          </section>
+        </aside>
+
+        <!-- Center Visualization -->
+        <div class="col-span-12 lg:col-span-6 space-y-6">
+          <section
+            class="glass-card rounded-[2rem] p-6 md:p-8 bg-white/5 border-white/10 min-h-[400px] flex flex-col"
+          >
+            <div
+              class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8"
+            >
+              <div>
+                <h2 class="text-xl font-bold text-white">
+                  Bảng Quy hoạch động
+                </h2>
+                <p class="text-sm text-slate-400 mt-1">
+                  Trạng thái mảng DP qua từng bước
+                </p>
+              </div>
+              <div class="flex flex-wrap gap-4 text-[10px] md:text-xs">
+                <div
+                  class="flex items-center gap-2 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-full text-blue-400 font-medium"
+                >
+                  <span
+                    class="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]"
+                  ></span>
+                  Nguồn (dp[j-w])
+                </div>
+                <div
+                  class="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 border border-green-500/20 rounded-full text-green-400 font-medium"
+                >
+                  <span
+                    class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"
+                  ></span>
+                  Đang tính (dp[j])
+                </div>
+              </div>
+            </div>
+
+            <div
+              class="flex-1 flex items-center justify-center overflow-x-auto scroll-custom py-8"
+            >
+              <div
+                id="dpGrid"
+                class="flex flex-wrap gap-4 md:gap-6 justify-center max-w-full px-4"
+              >
+                <!-- Cells injected here -->
+              </div>
+            </div>
+          </section>
+
+          <!-- Status & Explanation -->
+          <section
+            id="statusCard"
+            class="relative group overflow-hidden rounded-[2rem] p-8 transition-all duration-500 bg-gradient-to-br from-brand-900/80 to-slate-950 border border-brand-500/20 shadow-2xl shadow-brand-500/5"
+          >
+            <div
+              class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 mix-blend-overlay"
+            ></div>
+            <div
+              class="absolute -right-16 -bottom-16 w-64 h-64 bg-brand-500/10 rounded-full blur-[100px] group-hover:bg-brand-500/20 transition-all duration-700"
+            ></div>
+
+            <div
+              class="relative z-10 flex flex-col md:flex-row gap-6 items-start"
+            >
+              <div
+                class="w-12 h-12 rounded-2xl bg-brand-500/20 flex items-center justify-center text-brand-400 border border-brand-500/30 flex-shrink-0"
+              >
+                <i class="fas fa-lightbulb text-xl animate-pulse"></i>
+              </div>
+              <div class="space-y-3">
+                <p
+                  class="text-xs font-bold text-brand-400 uppercase tracking-widest"
+                >
+                  Phân tích bước hiện tại
+                </p>
+                <p
+                  id="explanation"
+                  class="text-base md:text-xl font-medium leading-relaxed text-slate-100 italic"
+                >
+                  Sẵn sàng để bắt đầu? Nhấn "Tiếp theo" để khám phá cách thuật
+                  toán vận hành.
+                </p>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- Right Side: Code & Meta -->
+        <div class="col-span-12 lg:col-span-3 space-y-6">
+          <section
+            class="glass-card rounded-[2rem] bg-[#0f172a] border-white/5 overflow-hidden flex flex-col h-full ring-1 ring-white/5 shadow-2xl"
+          >
+            <div
+              class="bg-slate-900/80 px-5 py-4 border-b border-white/5 flex items-center justify-between"
+            >
+              <div class="flex items-center gap-3">
+                <div class="flex gap-1.5">
+                  <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                  <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                </div>
+                <span
+                  class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-2"
+                  >cpp_logic.cpp</span
+                >
+              </div>
+              <span class="text-[9px] font-mono text-slate-500">v1.2.0</span>
+            </div>
+
+            <div
+              class="p-6 font-mono text-[13px] leading-7 flex-1 text-slate-400 overflow-hidden relative"
+            >
+              <div id="L1" class="code-line">
+                for (int i = 1; i <= N; i++) {
+              </div>
+              <div id="L2" class="code-line pl-6">
+                for (int j =
+                <span id="loopCode" class="text-amber-400">...</span>) {
+              </div>
+              <div id="L3" class="code-line pl-12 text-slate-300">
+                ll <span class="text-blue-400">gia_tri_moi</span> = dp[j-w[i]] +
+                v[i];
+              </div>
+              <div id="L4" class="code-line pl-12">
+                if (<span class="text-blue-400">gia_tri_moi</span> > dp[j]) {
+              </div>
+              <div
+                id="L5"
+                class="code-line pl-[4.5rem] !text-emerald-400 font-semibold bg-emerald-500/5 rounded-lg"
+              >
+                dp[j] = gia_tri_moi;
+              </div>
+              <div id="L6" class="code-line pl-12">}</div>
+              <div id="L7" class="code-line pl-6">}</div>
+              <div id="L8" class="code-line">}</div>
+
+              <div
+                class="absolute bottom-4 left-6 right-6 p-4 rounded-2xl bg-slate-900/50 border border-white/5 mt-8"
+              >
+                <div class="flex justify-between items-center mb-3">
+                  <span
+                    class="text-[10px] font-bold text-slate-500 uppercase tracking-widest"
+                    >Tốc độ mô phỏng</span
+                  >
+                  <span
+                    id="speedVal"
+                    class="text-[10px] font-bold text-brand-400"
+                    >1.0s</span
+                  >
+                </div>
+                <input
+                  type="range"
+                  id="speed"
+                  min="200"
+                  max="1800"
+                  value="1000"
+                  class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-brand-500 transition-all hover:accent-brand-400"
+                  oninput="document.getElementById('speedVal').innerText = ((2000 - this.value)/1000).toFixed(1) + 's'"
+                />
+              </div>
+            </div>
+          </section>
+
+          <!-- Instructions Card -->
+          <section
+            class="glass-card rounded-[2rem] p-6 bg-brand-500/5 border-brand-500/10"
+          >
+            <h3
+              class="text-xs font-bold text-brand-400 uppercase tracking-widest mb-4 flex items-center gap-2"
+            >
+              <i class="fas fa-info-circle"></i> Mẹo nhỏ
+            </h3>
+            <ul class="text-xs text-slate-400 space-y-3 leading-relaxed">
+              <li class="flex gap-2">
+                <span class="text-brand-500">•</span>
+                <span
+                  >Thay đổi <b>N</b> hoặc <b>M</b> để xem bảng DP mở rộng linh
+                  hoạt.</span
+                >
+              </li>
+              <li class="flex gap-2">
+                <span class="text-brand-500">•</span>
+                <span
+                  >Chế độ <b>Unbounded</b> mô phỏng khi bạn có vô hạn số lượng
+                  mỗi vật phẩm.</span
+                >
+              </li>
+            </ul>
+          </section>
         </div>
       </div>
     </main>
+
+    <!-- Mobile Controls Float (optional, but keep it desktop-first for now) -->
+    <div
+      class="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 p-2 bg-slate-900 border border-white/10 rounded-2xl shadow-2xl glass-card"
+    >
+      <button onclick="prevStep()" class="p-3 text-slate-400">
+        <i class="fas fa-arrow-left"></i>
+      </button>
+      <button
+        id="mobilePlay"
+        onclick="toggleAuto()"
+        class="px-6 py-3 bg-brand-600 rounded-xl text-white font-bold flex items-center gap-2"
+      >
+        <i class="fas fa-play"></i>
+      </button>
+      <button onclick="nextStep()" class="p-3 text-slate-400">
+        <i class="fas fa-arrow-right"></i>
+      </button>
+    </div>
 
     <script>
       let items = [];
@@ -306,37 +533,47 @@
       let timer = null;
 
       function updateItemsUI() {
-        const n = parseInt(document.getElementById("inputN").value);
+        const n = Math.min(
+          parseInt(document.getElementById("inputN").value) || 1,
+          10
+        );
+        document.getElementById("inputN").value = n;
+        document.getElementById("itemCount").innerText = `${n} Item${
+          n > 1 ? "s" : ""
+        }`;
+
         const container = document.getElementById("itemsContainer");
         container.innerHTML = "";
         for (let i = 0; i < n; i++) {
+          const w = 2 + i;
+          const v = 3 + i * 2;
           container.innerHTML += `
-                <div id="item-card-${i}" class="bg-slate-50 p-4 rounded-xl border border-slate-200 transition-all duration-300 shadow-sm relative">
-                    <div class="flex items-center gap-2 mb-3">
-                        <span class="flex items-center justify-center w-6 h-6 bg-indigo-100 text-indigo-700 rounded-full text-xs font-bold">${
-                          i + 1
-                        }</span>
-                        <span class="text-xs font-bold text-slate-500 uppercase">Vật phẩm ${
-                          i + 1
-                        }</span>
+            <div id="item-card-${i}" class="bg-slate-900/40 p-5 rounded-2xl border border-white/5 transition-all duration-500 group relative hover:border-brand-500/30">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-2">
+                      <span class="flex items-center justify-center w-6 h-6 bg-brand-500/10 text-brand-400 rounded-lg text-[10px] font-bold border border-brand-500/20">${
+                        i + 1
+                      }</span>
+                      <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Vật phẩm</span>
                     </div>
-                    <div class="grid grid-cols-2 gap-3">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1">
+                        <label class="text-[9px] font-bold text-slate-600 uppercase ml-1">Cân nặng</label>
                         <div class="relative">
-                            <i class="fas fa-weight-hanging absolute left-3 top-3.5 text-slate-400 text-xs"></i>
-                            <input type="number" id="w-${i}" value="${
-            2 + i
-          }" class="w-full pl-8 pr-3 py-2 border border-slate-200 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="W">
-                            <span class="absolute right-2 top-0 text-[9px] text-slate-400 font-bold uppercase pt-1">Nặng</span>
-                        </div>
-                        <div class="relative">
-                            <i class="fas fa-dollar-sign absolute left-3 top-3.5 text-slate-400 text-xs"></i>
-                            <input type="number" id="v-${i}" value="${
-            3 + i * 2
-          }" class="w-full pl-8 pr-3 py-2 border border-slate-200 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="V">
-                            <span class="absolute right-2 top-0 text-[9px] text-slate-400 font-bold uppercase pt-1">Giá trị</span>
+                            <i class="fas fa-weight-hanging absolute left-3 top-1/2 -translate-y-1/2 text-slate-600 text-[10px]"></i>
+                            <input type="number" id="w-${i}" value="${w}" class="w-full bg-slate-950/50 pl-8 pr-3 py-2.5 border border-white/5 rounded-xl text-sm font-bold focus:ring-1 focus:ring-brand-500 outline-none transition-all">
                         </div>
                     </div>
-                </div>`;
+                    <div class="space-y-1">
+                        <label class="text-[9px] font-bold text-slate-600 uppercase ml-1">Giá trị</label>
+                        <div class="relative">
+                            <i class="fas fa-dollar-sign absolute left-3 top-1/2 -translate-y-1/2 text-slate-600 text-[10px]"></i>
+                            <input type="number" id="v-${i}" value="${v}" class="w-full bg-slate-950/50 pl-8 pr-3 py-2.5 border border-white/5 rounded-xl text-sm font-bold focus:ring-1 focus:ring-brand-500 outline-none transition-all">
+                        </div>
+                    </div>
+                </div>
+            </div>`;
         }
         resetSim();
       }
@@ -360,7 +597,7 @@
             i: -1,
             j: -1,
             L: 0,
-            msg: "Khởi tạo mảng DP với giá trị 0.",
+            msg: "Khởi tạo mảng Quy hoạch động (DP) với tất cả giá trị ban đầu là 0.",
           },
         ];
 
@@ -371,9 +608,9 @@
             i,
             j: -1,
             L: 1,
-            msg: `Đang xét vật phẩm thứ ${
+            msg: `Đang xét Vật phẩm số ${
               i + 1
-            } (Cân nặng: ${w}, Giá trị: ${v})`,
+            } có Cân nặng = ${w} và Giá trị = ${v}.`,
           });
 
           let range = [];
@@ -389,29 +626,29 @@
               i,
               j,
               L: 2,
-              msg: `Kiểm tra túi có sức chứa j = ${j}`,
+              msg: `Tính toán cho túi có sức chứa hiện tại j = ${j}.`,
             });
-            let gia_tri_moi = dp[j - w] + v;
+            let prevVal = dp[j - w];
+            let gia_tri_moi = prevVal + v;
             steps.push({
               dp: [...dp],
               i,
               j,
               L: 3,
-              msg: `Tính giá trị nếu chọn vật phẩm này: dp[${
+              msg: `Nếu chọn vật phẩm ${i + 1}: Giá trị mới = dp[${
                 j - w
-              }] + ${v} = ${gia_tri_moi}`,
+              }] + ${v} = ${prevVal} + ${v} = ${gia_tri_moi}.`,
             });
 
             if (gia_tri_moi > dp[j]) {
+              const oldVal = dp[j];
               dp[j] = gia_tri_moi;
               steps.push({
                 dp: [...dp],
                 i,
                 j,
                 L: 5,
-                msg: `Vì ${gia_tri_moi} > ${
-                  steps[steps.length - 1].dp[j]
-                }, cập nhật dp[${j}] = ${gia_tri_moi}`,
+                msg: `Vì ${gia_tri_moi} lớn hơn giá trị cũ (${oldVal}), ta cập nhật dp[${j}] = ${gia_tri_moi}.`,
               });
             } else {
               steps.push({
@@ -419,7 +656,7 @@
                 i,
                 j,
                 L: 4,
-                msg: `Vì ${gia_tri_moi} ≤ ${dp[j]}, giữ nguyên giá trị tối ưu.`,
+                msg: `Vì ${gia_tri_moi} không tốt hơn ${dp[j]}, ta giữ nguyên giá trị tối ưu hiện tại.`,
               });
             }
           }
@@ -429,7 +666,8 @@
           i: -1,
           j: -1,
           L: 8,
-          msg: "Hoàn thành thuật toán! Kết quả tối ưu là " + dp[m],
+          isFinal: true,
+          msg: `Thuật toán kết thúc! Giá trị lớn nhất có thể đạt được là ${dp[m]}.`,
         });
       }
 
@@ -440,85 +678,118 @@
         grid.innerHTML = "";
 
         step.dp.forEach((val, idx) => {
-          let statusClass =
-            "bg-white border-slate-200 text-slate-800 shadow-sm";
-          if (idx === step.j) statusClass = "cell-target";
-          if (step.j !== -1 && idx === step.j - items[step.i].w)
+          let statusClass = "bg-slate-900/50 border-white/5 text-slate-300";
+          let extra = "";
+
+          if (idx === step.j) {
+            statusClass = "cell-target animate-pulse-slow";
+            extra =
+              '<div class="absolute -top-3 -right-3 w-8 h-8 md:w-10 md:h-10 bg-yellow-400 rounded-2xl flex items-center justify-center text-slate-900 shadow-xl shadow-yellow-400/20 rotate-12"><i class="fas fa-shopping-bag text-xs md:text-sm"></i></div>';
+          } else if (step.j !== -1 && idx === step.j - items[step.i].w) {
             statusClass = "cell-source";
+            extra =
+              '<div class="absolute -top-2 -left-2 bg-blue-400 text-white p-1 rounded-md text-[8px] font-bold">SOURCE</div>';
+          }
 
           grid.innerHTML += `
-                    <div class="relative w-14 h-16 flex flex-col items-center justify-center border-2 rounded-xl transition-all duration-300 ${statusClass}">
-                        <span class="text-[9px] font-bold opacity-50 mb-1">j=${idx}</span>
-                        <span class="text-lg font-bold">${val}</span>
-                        ${
-                          idx === step.j
-                            ? '<i class="fas fa-shopping-bag absolute -top-3 -right-2 text-yellow-400 text-xs drop-shadow-md"></i>'
-                            : ""
-                        }
-                    </div>`;
+            <div class="dp-cell ${statusClass}">
+                <span class="text-[8px] md:text-[10px] font-bold opacity-40 absolute top-2">j=${idx}</span>
+                <span class="text-base md:text-xl font-bold mt-2">${val}</span>
+                ${extra}
+            </div>`;
         });
 
         // Highlight current item card
         document.querySelectorAll('[id^="item-card-"]').forEach((el, idx) => {
-          el.classList.remove("item-active");
+          el.className = el.className
+            .replace(/item-active|opacity-40/g, "")
+            .trim();
 
           if (step.i === -1) {
-            // No item selected, show all clearly
-            el.classList.remove("opacity-60");
-            el.classList.add("opacity-100");
+            // Neutral state
           } else if (idx === step.i) {
-            // Current active item
             el.classList.add("item-active");
-            el.classList.remove("opacity-60");
-            el.classList.add("opacity-100");
           } else {
-            // Other items
-            el.classList.add("opacity-60");
-            el.classList.remove("opacity-100");
+            el.classList.add("opacity-40");
           }
         });
 
+        // Code highlighting
         document
-          .querySelectorAll('[id^="L"]')
-          .forEach(
-            (el) => (el.className = el.className.replace("code-active", ""))
-          );
-        if (step.L > 0)
-          document.getElementById(`L${step.L}`).className += " code-active";
+          .querySelectorAll(".code-line")
+          .forEach((el) => el.classList.remove("active"));
+        if (step.L > 0) {
+          const codeEl = document.getElementById(`L${step.L}`);
+          if (codeEl) codeEl.classList.add("active");
+        }
 
         document.getElementById("loopCode").innerText =
           document.getElementById("algoType").value === "01"
             ? "M; j >= w[i]; j--"
             : "w[i]; j <= M; j++";
-        document.getElementById("explanation").innerText = step.msg;
 
+        // Text animation for explanation
+        const explainEl = document.getElementById("explanation");
+        explainEl.style.opacity = 0;
+        explainEl.style.transform = "translateY(5px)";
+        setTimeout(() => {
+          explainEl.innerText = step.msg;
+          explainEl.style.opacity = 1;
+          explainEl.style.transform = "translateY(0)";
+          explainEl.style.transition = "all 0.3s ease-out";
+        }, 50);
+
+        if (step.isFinal) {
+          confetti({
+            particleCount: 150,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ["#8b5cf6", "#c4b5fd", "#ffffff"],
+          });
+        }
+
+        // Update buttons
         document.getElementById("btnPrev").disabled = currentStep <= 0;
         document.getElementById("btnNext").disabled =
           currentStep >= steps.length - 1;
+
+        // Sync mobile buttons
+        const playBtns = [
+          document.getElementById("btnPlay"),
+          document.getElementById("mobilePlay"),
+        ];
+        playBtns.forEach((btn) => {
+          if (isAuto) btn.classList.add("paused");
+          else btn.classList.remove("paused");
+        });
       }
 
       function toggleAuto() {
         isAuto = !isAuto;
-        const btn = document.getElementById("btnPlay");
-        if (isAuto) {
-          btn.innerHTML = '<i class="fas fa-pause"></i> <span>Tạm dừng</span>';
-          btn.classList.replace("bg-indigo-600", "bg-rose-500");
-          autoRun();
-        } else {
-          btn.innerHTML = '<i class="fas fa-play"></i> <span>Tự động</span>';
-          btn.classList.replace("bg-rose-500", "bg-indigo-600");
-          clearTimeout(timer);
-        }
+        const playBtn = document.getElementById("btnPlay");
+        const mobilePlay = document.getElementById("mobilePlay");
+
+        [playBtn, mobilePlay].forEach((btn) => {
+          if (isAuto) {
+            btn.innerHTML =
+              '<i class="fas fa-pause"></i> <span>Tạm dừng</span>';
+            btn.classList.add("paused");
+          } else {
+            btn.innerHTML = '<i class="fas fa-play"></i> <span>Tự động</span>';
+            btn.classList.remove("paused");
+          }
+        });
+
+        if (isAuto) autoRun();
+        else clearTimeout(timer);
       }
 
       function autoRun() {
         if (!isAuto) return;
         if (currentStep < steps.length - 1) {
           nextStep();
-          timer = setTimeout(
-            autoRun,
-            2000 - document.getElementById("speed").value
-          );
+          const delay = 2000 - parseInt(document.getElementById("speed").value);
+          timer = setTimeout(autoRun, delay);
         } else {
           toggleAuto();
         }
@@ -539,14 +810,20 @@
       function resetSim() {
         clearTimeout(timer);
         isAuto = false;
-        const btn = document.getElementById("btnPlay");
-        btn.innerHTML = '<i class="fas fa-play"></i> <span>Tự động</span>';
-        btn.classList.replace("bg-rose-500", "bg-indigo-600");
+
+        const playBtn = document.getElementById("btnPlay");
+        const mobilePlay = document.getElementById("mobilePlay");
+        [playBtn, mobilePlay].forEach((btn) => {
+          btn.innerHTML = '<i class="fas fa-play"></i> <span>Tự động</span>';
+          btn.classList.remove("paused");
+        });
+
         generateSteps();
         currentStep = 0;
         render();
       }
 
+      // Initial Call
       updateItemsUI();
     </script>
   </body>
