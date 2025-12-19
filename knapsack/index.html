@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/hsg-tin-hoc/" />
     <title>Học thuật toán Knapsack - Trực quan & Chuyên nghiệp</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link
@@ -42,6 +43,31 @@
       .scroll-custom::-webkit-scrollbar-thumb {
         background: #888;
         border-radius: 10px;
+      }
+      .item-active {
+        border-color: #6366f1 !important;
+        background-color: #f5f3ff !important;
+        transform: scale(1.02);
+        box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.2);
+        z-index: 10;
+      }
+      @keyframes pulse-glow {
+        0%,
+        100% {
+          box-shadow: 0 10px 15px -3px rgba(34, 197, 94, 0.4);
+        }
+        50% {
+          box-shadow: 0 15px 25px -3px rgba(34, 197, 94, 0.7);
+        }
+      }
+      .cell-target {
+        background: linear-gradient(135deg, #22c55e, #16a34a) !important;
+        color: white;
+        transform: translateY(-8px) scale(1.1);
+        box-shadow: 0 15px 25px -5px rgba(34, 197, 94, 0.5);
+        border-color: #059669;
+        z-index: 20;
+        animation: pulse-glow 1.5s infinite;
       }
     </style>
   </head>
@@ -158,7 +184,7 @@
           </h2>
           <div
             id="itemsContainer"
-            class="space-y-3 max-h-[400px] overflow-y-auto pr-2 scroll-custom"
+            class="space-y-4 max-h-[400px] overflow-y-auto overflow-x-visible p-4 scroll-custom"
           ></div>
           <button
             onclick="resetSim()"
@@ -188,7 +214,7 @@
           </div>
           <div
             id="dpGrid"
-            class="flex flex-wrap gap-3 justify-center mb-4"
+            class="flex flex-wrap gap-4 justify-center mb-4 p-6"
           ></div>
         </div>
 
@@ -285,7 +311,7 @@
         container.innerHTML = "";
         for (let i = 0; i < n; i++) {
           container.innerHTML += `
-                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 transition focus-within:border-indigo-500 shadow-sm">
+                <div id="item-card-${i}" class="bg-slate-50 p-4 rounded-xl border border-slate-200 transition-all duration-300 shadow-sm relative">
                     <div class="flex items-center gap-2 mb-3">
                         <span class="flex items-center justify-center w-6 h-6 bg-indigo-100 text-indigo-700 rounded-full text-xs font-bold">${
                           i + 1
@@ -299,14 +325,14 @@
                             <i class="fas fa-weight-hanging absolute left-3 top-3.5 text-slate-400 text-xs"></i>
                             <input type="number" id="w-${i}" value="${
             2 + i
-          }" class="w-full pl-8 pr-3 py-2 border border-slate-200 rounded-lg text-sm font-semibold" placeholder="W">
+          }" class="w-full pl-8 pr-3 py-2 border border-slate-200 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="W">
                             <span class="absolute right-2 top-0 text-[9px] text-slate-400 font-bold uppercase pt-1">Nặng</span>
                         </div>
                         <div class="relative">
                             <i class="fas fa-dollar-sign absolute left-3 top-3.5 text-slate-400 text-xs"></i>
                             <input type="number" id="v-${i}" value="${
             3 + i * 2
-          }" class="w-full pl-8 pr-3 py-2 border border-slate-200 rounded-lg text-sm font-semibold" placeholder="V">
+          }" class="w-full pl-8 pr-3 py-2 border border-slate-200 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="V">
                             <span class="absolute right-2 top-0 text-[9px] text-slate-400 font-bold uppercase pt-1">Giá trị</span>
                         </div>
                     </div>
@@ -421,10 +447,35 @@
             statusClass = "cell-source";
 
           grid.innerHTML += `
-                    <div class="w-14 h-16 flex flex-col items-center justify-center border-2 rounded-xl transition-all duration-300 ${statusClass}">
+                    <div class="relative w-14 h-16 flex flex-col items-center justify-center border-2 rounded-xl transition-all duration-300 ${statusClass}">
                         <span class="text-[9px] font-bold opacity-50 mb-1">j=${idx}</span>
                         <span class="text-lg font-bold">${val}</span>
+                        ${
+                          idx === step.j
+                            ? '<i class="fas fa-shopping-bag absolute -top-3 -right-2 text-yellow-400 text-xs drop-shadow-md"></i>'
+                            : ""
+                        }
                     </div>`;
+        });
+
+        // Highlight current item card
+        document.querySelectorAll('[id^="item-card-"]').forEach((el, idx) => {
+          el.classList.remove("item-active");
+
+          if (step.i === -1) {
+            // No item selected, show all clearly
+            el.classList.remove("opacity-60");
+            el.classList.add("opacity-100");
+          } else if (idx === step.i) {
+            // Current active item
+            el.classList.add("item-active");
+            el.classList.remove("opacity-60");
+            el.classList.add("opacity-100");
+          } else {
+            // Other items
+            el.classList.add("opacity-60");
+            el.classList.remove("opacity-100");
+          }
         });
 
         document
