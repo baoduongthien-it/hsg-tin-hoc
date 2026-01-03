@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <meta
+      name="description"
+      content="Công cụ trực quan hóa thuật toán Longest Increasing Subsequence (LIS) chuyên nghiệp. Học Dynamic Programming qua hình ảnh sống động."
+    />
+    <base href="/hsg-tin-hoc/" />
+    <title>
+      Học thuật toán LIS - Dãy con tăng dài nhất - Trực quan & Chuyên nghiệp
+    </title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ["Outfit", "sans-serif"],
+              mono: ["Fira Code", "monospace"],
+            },
+            colors: {
+              brand: {
+                50: "#f0f9ff",
+                100: "#e0f2fe",
+                200: "#bae6fd",
+                300: "#7dd3fc",
+                400: "#38bdf8",
+                500: "#0ea5e9",
+                600: "#0284c7",
+                700: "#0369a1",
+                800: "#075985",
+                900: "#0c4a6e",
+                950: "#082f49",
+              },
+            },
+            animation: {
+              "pulse-slow": "pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+              float: "float 3s ease-in-out infinite",
+            },
+            keyframes: {
+              float: {
+                "0%, 100%": { transform: "translateY(0)" },
+                "50%": { transform: "translateY(-10px)" },
+              },
+            },
+          },
+        },
+      };
+    </script>
+
+    <style type="text/tailwindcss">
+      @layer components {
+        .glass-card {
+          @apply bg-white/80 backdrop-blur-xl border border-white/20 shadow-xl;
+        }
+        .btn-primary {
+          @apply bg-brand-600 hover:bg-brand-700 text-white px-6 py-2.5 rounded-2xl font-semibold transition-all duration-300 shadow-lg shadow-brand-900/20 hover:shadow-brand-900/30 active:scale-95 disabled:opacity-50 disabled:pointer-events-none;
+        }
+        .btn-secondary {
+          @apply bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl font-medium transition-all duration-300 active:scale-95 disabled:opacity-50;
+        }
+        .code-line {
+          @apply px-4 py-1 border-l-2 border-transparent transition-all duration-200;
+        }
+        .code-line.active {
+          @apply bg-brand-500/10 border-brand-500 text-brand-400 font-medium;
+        }
+        .cell {
+          @apply w-14 h-20 md:w-20 md:h-28 flex flex-col items-center justify-center rounded-2xl border-2 transition-all duration-500 relative cursor-default overflow-hidden;
+        }
+        .dp-cell {
+          @apply w-12 h-14 md:w-16 md:h-20 flex flex-col items-center justify-center rounded-2xl border-2 transition-all duration-500 relative;
+        }
+      }
+
+      .scroll-custom::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      .scroll-custom::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .scroll-custom::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 10px;
+      }
+      .scroll-custom::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+      }
+
+      .cell-current {
+        background: linear-gradient(135deg, #0ea5e9, #2563eb) !important;
+        color: white;
+        border-color: #0369a1 !important;
+        transform: translateY(-8px) scale(1.05);
+        box-shadow: 0 15px 30px -10px rgba(14, 165, 233, 0.4);
+        z-index: 20;
+      }
+      .cell-comparing {
+        background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+        color: white;
+        border-color: #b45309 !important;
+        transform: scale(0.95);
+        box-shadow: 0 10px 20px -10px rgba(245, 158, 11, 0.3);
+      }
+      .cell-success {
+        background: linear-gradient(135deg, #10b981, #059669) !important;
+        color: white;
+        border-color: #047857 !important;
+      }
+
+      .item-active {
+        @apply ring-4 ring-brand-500/30 border-brand-500 bg-brand-50 scale-[1.02] -translate-y-1 shadow-2xl z-10;
+      }
+
+      body {
+        background-image: radial-gradient(
+            at 0% 0%,
+            hsla(200, 39%, 10%, 1) 0,
+            transparent 50%
+          ),
+          radial-gradient(at 50% 0%, hsla(215, 39%, 20%, 1) 0, transparent 50%),
+          radial-gradient(at 100% 0%, hsla(230, 49%, 15%, 1) 0, transparent 50%);
+        background-attachment: fixed;
+      }
+    </style>
+  </head>
+  <body
+    class="bg-slate-950 min-h-screen text-slate-100 selection:bg-brand-500/30"
+  >
+    <!-- Overlay for background softness -->
+    <div class="fixed inset-0 bg-slate-50/5 backdrop-blur-3xl -z-10"></div>
+
+    <header class="sticky top-0 z-50 px-4 py-3 md:px-8 md:py-4">
+      <nav
+        class="max-w-[1600px] mx-auto glass-card rounded-3xl flex items-center justify-between px-6 py-2 border-white/10 bg-white/5"
+      >
+        <div class="flex items-center gap-4">
+          <div
+            class="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-brand-500 to-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-md shadow-brand-500/10 animate-float"
+          >
+            <i class="fas fa-chart-line text-lg md:text-xl"></i>
+          </div>
+          <div>
+            <h1
+              class="text-lg md:text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400"
+            >
+              LIS Visualizer
+            </h1>
+            <p
+              class="text-[10px] md:text-xs text-slate-500 font-medium uppercase tracking-widest hidden md:block"
+            >
+              Interactive Algorithm Tool
+            </p>
+          </div>
+        </div>
+
+        <div class="hidden lg:flex items-center gap-4">
+          <div
+            class="flex items-center gap-1 bg-slate-900/50 p-1.5 rounded-2xl border border-white/5"
+          >
+            <button
+              id="btnPrev"
+              onclick="prevStep()"
+              class="p-2.5 hover:bg-white/10 rounded-xl transition-all disabled:opacity-20"
+            >
+              <i class="fas fa-arrow-left"></i>
+            </button>
+            <button
+              id="btnPlay"
+              onclick="toggleAuto()"
+              class="btn-primary flex items-center gap-2 min-w-[140px] justify-center group"
+            >
+              <i class="fas fa-play group-[.paused]:hidden"></i>
+              <span class="group-[.paused]:hidden">Chạy tự động</span>
+              <i class="fas fa-pause hidden group-[.paused]:block"></i>
+              <span class="hidden group-[.paused]:block">Tạm dừng</span>
+            </button>
+            <button
+              id="btnNext"
+              onclick="nextStep()"
+              class="p-2.5 hover:bg-white/10 rounded-xl transition-all disabled:opacity-20"
+            >
+              <i class="fas fa-arrow-right"></i>
+            </button>
+          </div>
+          <button
+            onclick="resetSim()"
+            class="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-all"
+            title="Làm mới"
+          >
+            <i class="fas fa-rotate"></i>
+          </button>
+        </div>
+
+        <!-- Mobile Controls Toggle -->
+        <div class="lg:hidden flex items-center gap-2">
+          <button
+            onclick="resetSim()"
+            class="p-2 text-slate-400"
+          >
+            <i class="fas fa-rotate"></i>
+          </button>
+          <button
+            id="mobileNext"
+            onclick="nextStep()"
+            class="p-3 bg-brand-600 rounded-xl text-white"
+          >
+            <i class="fas fa-step-forward"></i>
+          </button>
+        </div>
+      </nav>
+    </header>
+
+    <main class="p-4 md:p-6 max-w-[1600px] mx-auto">
+      <div class="grid grid-cols-12 gap-6">
+        <!-- Sidebar Config -->
+        <aside class="col-span-12 lg:col-span-3 space-y-6">
+          <section
+            class="glass-card rounded-[2rem] p-6 bg-white/5 border-white/5"
+          >
+            <div class="flex items-center gap-3 mb-6">
+              <span class="w-2 h-6 bg-brand-500 rounded-full"></span>
+              <h2
+                class="text-sm font-bold text-slate-400 uppercase tracking-widest"
+              >
+                Cấu hình
+              </h2>
+            </div>
+
+            <div class="space-y-5">
+              <div class="space-y-2">
+                <label class="text-xs font-semibold text-slate-500 px-1"
+                  >Số lượng phần tử (N)</label
+                >
+                <input
+                  type="number"
+                  id="inputN"
+                  value="8"
+                  min="1"
+                  max="15"
+                  class="w-full bg-slate-900/50 border border-white/10 p-3.5 rounded-2xl text-sm transition-all focus:ring-2 focus:ring-brand-500 outline-none"
+                  onchange="updateItemsUI()"
+                />
+              </div>
+              <button
+                onclick="randomizeValues()"
+                class="w-full btn-secondary flex items-center justify-center gap-2"
+              >
+                <i class="fas fa-random"></i> Ngẫu nhiên mảng
+              </button>
+            </div>
+          </section>
+
+          <section
+            class="glass-card rounded-[2rem] p-6 bg-white/5 border-white/5 flex flex-col max-h-[600px]"
+          >
+            <div class="flex items-center justify-between mb-6">
+              <div class="flex items-center gap-3">
+                <span class="w-2 h-6 bg-pink-500 rounded-full"></span>
+                <h2
+                  class="text-sm font-bold text-slate-400 uppercase tracking-widest"
+                >
+                  Mảng Đầu Vào
+                </h2>
+              </div>
+            </div>
+
+            <div
+              id="itemsContainer"
+              class="space-y-3 overflow-y-auto scroll-custom pr-2 -mr-2"
+            >
+              <!-- Items will be injected here -->
+            </div>
+
+            <button
+              onclick="resetSim()"
+              class="w-full mt-6 btn-primary !rounded-2xl flex items-center justify-center gap-2"
+            >
+              <i class="fas fa-bolt"></i> Cập nhật ngay
+            </button>
+          </section>
+        </aside>
+
+        <!-- Center Visualization -->
+        <div class="col-span-12 lg:col-span-6 space-y-6">
+          <section
+            class="glass-card rounded-[2rem] p-6 md:p-8 bg-white/5 border-white/10 min-h-[500px] flex flex-col"
+          >
+            <div
+              class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8"
+            >
+              <div>
+                <h2 class="text-xl font-bold text-white">
+                  Quá trình tính toán LIS
+                </h2>
+                <p class="text-sm text-slate-400 mt-1">
+                  Trực quan hóa mảng <code>a</code> và mảng <code>dp</code>
+                </p>
+              </div>
+              <div class="flex flex-wrap gap-4 text-[10px] md:text-xs">
+                <div
+                  class="flex items-center gap-2 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-full text-blue-400 font-medium"
+                >
+                  <span
+                    class="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]"
+                  ></span>
+                  Phần tử đang xét (i)
+                </div>
+                <div
+                  class="flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-full text-amber-400 font-medium"
+                >
+                  <span
+                    class="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]"
+                  ></span>
+                  Phần tử so sánh (j)
+                </div>
+              </div>
+            </div>
+
+            <div
+              class="flex-1 flex flex-col items-center justify-center space-y-12 overflow-x-auto scroll-custom py-8"
+            >
+              <!-- Visual Array -->
+              <div
+                id="visArray"
+                class="flex flex-nowrap gap-3 md:gap-4 px-4"
+              >
+                <!-- Elements injected here -->
+              </div>
+            </div>
+          </section>
+
+          <!-- Status & Explanation -->
+          <section
+            id="statusCard"
+            class="relative group overflow-hidden rounded-[2rem] p-8 transition-all duration-500 bg-gradient-to-br from-brand-900/80 to-slate-950 border border-brand-500/20 shadow-2xl shadow-brand-500/5"
+          >
+            <div
+              class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 mix-blend-overlay"
+            ></div>
+            <div
+              class="absolute -right-16 -bottom-16 w-64 h-64 bg-brand-500/10 rounded-full blur-[100px] group-hover:bg-brand-500/20 transition-all duration-700"
+            ></div>
+
+            <div
+              class="relative z-10 flex flex-col md:flex-row gap-6 items-start"
+            >
+              <div
+                class="w-12 h-12 rounded-2xl bg-brand-500/20 flex items-center justify-center text-brand-400 border border-brand-500/30 flex-shrink-0"
+              >
+                <i class="fas fa-lightbulb text-xl animate-pulse"></i>
+              </div>
+              <div class="space-y-3">
+                <p
+                  class="text-xs font-bold text-brand-400 uppercase tracking-widest"
+                >
+                  Phân tích bước hiện tại
+                </p>
+                <p
+                  id="explanation"
+                  class="text-base md:text-xl font-medium leading-relaxed text-slate-100 italic"
+                >
+                  Sẵn sàng để bắt đầu? Nhấn "Tiếp theo" để khám phá cách thuật
+                  toán vận hành.
+                </p>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- Right Side: Code & Meta -->
+        <div class="col-span-12 lg:col-span-3 space-y-6">
+          <section
+            class="glass-card rounded-[2rem] bg-[#0f172a] border-white/5 overflow-hidden flex flex-col h-full ring-1 ring-white/5 shadow-2xl"
+          >
+            <div
+              class="bg-slate-900/80 px-5 py-4 border-b border-white/5 flex items-center justify-between"
+            >
+              <div class="flex items-center gap-3">
+                <div class="flex gap-1.5">
+                  <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                  <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                </div>
+                <span
+                  class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-2"
+                  >lis_solver.cpp</span
+                >
+              </div>
+              <span class="text-[9px] font-mono text-slate-500">v1.0.1</span>
+            </div>
+
+            <div
+              class="p-6 font-mono text-[13px] leading-7 flex-1 text-slate-400 overflow-hidden relative"
+            >
+              <div
+                id="L1"
+                class="code-line"
+              >
+                vector&lt;int&gt; dp(n, 1);
+              </div>
+              <div
+                id="L2"
+                class="code-line"
+              >
+                for (int i = 1; i &lt; n; i++) {
+              </div>
+              <div
+                id="L3"
+                class="code-line pl-6"
+              >
+                for (int j = 0; j &lt; i; j++) {
+              </div>
+              <div
+                id="L4"
+                class="code-line pl-12"
+              >
+                if (a[j] &lt; a[i]) {
+              </div>
+              <div
+                id="L5"
+                class="code-line pl-[4.5rem]"
+              >
+                dp[i] = max(dp[i], dp[j] + 1);
+              </div>
+              <div
+                id="L6"
+                class="code-line pl-12"
+              >
+                }
+              </div>
+              <div
+                id="L7"
+                class="code-line pl-6"
+              >
+                }
+              </div>
+              <div
+                id="L8"
+                class="code-line"
+              >
+                }
+              </div>
+              <div
+                id="L9"
+                class="code-line text-emerald-400 font-semibold"
+              >
+                return *max_element(dp.begin(), dp.end());
+              </div>
+
+              <div
+                class="absolute bottom-4 left-6 right-6 p-4 rounded-2xl bg-slate-900/50 border border-white/5 mt-8"
+              >
+                <div class="flex justify-between items-center mb-3">
+                  <span
+                    class="text-[10px] font-bold text-slate-500 uppercase tracking-widest"
+                    >Tốc độ mô phỏng</span
+                  >
+                  <span
+                    id="speedVal"
+                    class="text-[10px] font-bold text-brand-400"
+                    >1.0s</span
+                  >
+                </div>
+                <input
+                  type="range"
+                  id="speed"
+                  min="200"
+                  max="1800"
+                  value="1000"
+                  class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-brand-500 transition-all hover:accent-brand-400"
+                  oninput="document.getElementById('speedVal').innerText = ((2000 - this.value)/1000).toFixed(1) + 's'"
+                />
+              </div>
+            </div>
+          </section>
+
+          <!-- Instructions Card -->
+          <section
+            class="glass-card rounded-[2rem] p-6 bg-brand-500/5 border-brand-500/10"
+          >
+            <h3
+              class="text-xs font-bold text-brand-400 uppercase tracking-widest mb-4 flex items-center gap-2"
+            >
+              <i class="fas fa-info-circle"></i> Về LIS
+            </h3>
+            <ul class="text-xs text-slate-400 space-y-3 leading-relaxed">
+              <li class="flex gap-2">
+                <span class="text-brand-500">•</span>
+                <span
+                  ><b>dp[i]</b> là độ dài dãy con tăng dài nhất kết thúc tại vị
+                  trí i.</span
+                >
+              </li>
+              <li class="flex gap-2">
+                <span class="text-brand-500">•</span>
+                <span
+                  >Ta tìm một vị trí <b>j &lt; i</b> sao cho
+                  <b>a[j] &lt; a[i]</b> và mở rộng từ <b>dp[j]</b>.</span
+                >
+              </li>
+            </ul>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <!-- Mobile Controls Float -->
+    <div
+      class="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 p-2 bg-slate-900 border border-white/10 rounded-2xl shadow-2xl glass-card"
+    >
+      <button
+        onclick="prevStep()"
+        class="p-3 text-slate-400"
+      >
+        <i class="fas fa-arrow-left"></i>
+      </button>
+      <button
+        id="mobilePlay"
+        onclick="toggleAuto()"
+        class="px-6 py-3 bg-brand-600 rounded-xl text-white font-bold flex items-center gap-2"
+      >
+        <i class="fas fa-play"></i>
+      </button>
+      <button
+        onclick="nextStep()"
+        class="p-3 text-slate-400"
+      >
+        <i class="fas fa-arrow-right"></i>
+      </button>
+    </div>
+
+    <script>
+      let a = [];
+      let steps = [];
+      let currentStep = -1;
+      let isAuto = false;
+      let timer = null;
+
+      function updateItemsUI() {
+        const n = Math.min(
+          parseInt(document.getElementById("inputN").value) || 1,
+          15
+        );
+        document.getElementById("inputN").value = n;
+
+        const container = document.getElementById("itemsContainer");
+        const currentInputs = Array.from(
+          container.querySelectorAll("input")
+        ).map((input) => input.value);
+
+        container.innerHTML = "";
+        for (let i = 0; i < n; i++) {
+          const val = currentInputs[i] || Math.floor(Math.random() * 50) + 1;
+          container.innerHTML += `
+            <div id="item-input-${i}" class="bg-slate-900/40 p-4 rounded-xl border border-white/5 transition-all duration-500 group relative hover:border-brand-500/30">
+                <div class="flex items-center gap-3">
+                  <span class="flex items-center justify-center w-8 h-8 bg-brand-500/10 text-brand-400 rounded-lg text-xs font-bold border border-brand-500/20">${i}</span>
+                  <div class="relative flex-1">
+                      <input type="number" id="a-${i}" value="${val}" class="w-full bg-slate-950/50 px-3 py-2 border border-white/5 rounded-lg text-sm font-bold focus:ring-1 focus:ring-brand-500 outline-none transition-all">
+                  </div>
+                </div>
+            </div>`;
+        }
+        resetSim();
+      }
+
+      function randomizeValues() {
+        const n = parseInt(document.getElementById("inputN").value);
+        for (let i = 0; i < n; i++) {
+          const input = document.getElementById(`a-${i}`);
+          if (input) input.value = Math.floor(Math.random() * 100) + 1;
+        }
+        resetSim();
+      }
+
+      function generateSteps() {
+        const n = parseInt(document.getElementById("inputN").value);
+        a = [];
+        for (let i = 0; i < n; i++) {
+          a.push(parseInt(document.getElementById(`a-${i}`).value) || 0);
+        }
+
+        let dp = Array(n).fill(1);
+        steps = [
+          {
+            dp: Array(n).fill(null),
+            i: -1,
+            j: -1,
+            L: 0,
+            msg: "Bắt đầu thuật toán LIS. Khởi tạo mảng DP (chưa tính toán).",
+          },
+          {
+            dp: [...dp],
+            i: -1,
+            j: -1,
+            L: 1,
+            msg: "Tất cả dp[i] ban đầu được gán bằng 1 (mọi phần tử là một dãy con độ dài 1).",
+          },
+        ];
+
+        for (let i = 1; i < n; i++) {
+          steps.push({
+            dp: [...dp],
+            i,
+            j: -1,
+            L: 2,
+            msg: `Đang xét phần tử tại chỉ số i = ${i} (giá trị ${a[i]}).`,
+          });
+
+          for (let j = 0; j < i; j++) {
+            steps.push({
+              dp: [...dp],
+              i,
+              j,
+              L: 3,
+              msg: `So sánh với phần tử tại j = ${j} (giá trị ${a[j]}).`,
+            });
+
+            if (a[j] < a[i]) {
+              steps.push({
+                dp: [...dp],
+                i,
+                j,
+                L: 4,
+                msg: `Vì a[${j}] (${a[j]}) < a[${i}] (${a[i]}), ta có thể mở rộng dãy con kết thúc tại ${j}.`,
+              });
+
+              const newVal = dp[j] + 1;
+              const isUpdated = newVal > dp[i];
+
+              if (isUpdated) {
+                dp[i] = newVal;
+                steps.push({
+                  dp: [...dp],
+                  i,
+                  j,
+                  L: 5,
+                  msg: `Cập nhật dp[${i}] = max(dp[${i}], dp[${j}] + 1) = ${newVal}.`,
+                });
+              } else {
+                steps.push({
+                  dp: [...dp],
+                  i,
+                  j,
+                  L: 5,
+                  msg: `Dãy con kết thúc tại ${j} không tạo ra kết quả tốt hơn tại ${i}. Giữ nguyên dp[${i}] = ${dp[i]}.`,
+                });
+              }
+            } else {
+              steps.push({
+                dp: [...dp],
+                i,
+                j,
+                L: 4,
+                msg: `Vì a[${j}] (${a[j]}) không nhỏ hơn a[${i}] (${a[i]}), không thể mở rộng dãy con này.`,
+              });
+            }
+          }
+        }
+
+        const maxLen = Math.max(...dp);
+        steps.push({
+          dp: [...dp],
+          i: -1,
+          j: -1,
+          L: 9,
+          isFinal: true,
+          msg: `Thuật toán hoàn tất! Độ dài dãy con tăng dài nhất là ${maxLen}.`,
+        });
+      }
+
+      function render() {
+        const step = steps[currentStep];
+        const visArray = document.getElementById("visArray");
+        visArray.innerHTML = "";
+
+        a.forEach((val, idx) => {
+          let statusClass = "bg-slate-900/50 border-white/5 text-slate-300";
+          let label = `<span class="text-[10px] uppercase tracking-tighter text-slate-500 font-bold mb-1">a[${idx}]</span>`;
+          let dpVal = step.dp[idx] === null ? "?" : step.dp[idx];
+
+          if (idx === step.i) {
+            statusClass = "cell-current animate-pulse-slow";
+          } else if (idx === step.j) {
+            statusClass = "cell-comparing";
+          } else if (step.isFinal && step.dp[idx] === Math.max(...step.dp)) {
+            // Highlight result cells (approximate)
+            // Note: Multiple cells might have the max value
+          }
+
+          visArray.innerHTML += `
+            <div class="cell ${statusClass}">
+                ${label}
+                <span class="text-xl md:text-2xl font-bold">${val}</span>
+                <div class="mt-2 pt-2 border-t border-white/10 w-full text-center">
+                    <span class="text-[9px] block text-slate-500 uppercase">dp[${idx}]</span>
+                    <span class="text-sm md:text-lg font-mono font-bold text-brand-400">${dpVal}</span>
+                </div>
+                ${
+                  idx === step.i
+                    ? '<div class="absolute top-1 right-1"><i class="fas fa-crosshairs text-[10px]"></i></div>'
+                    : ""
+                }
+            </div>`;
+        });
+
+        // Highlight input cards
+        document.querySelectorAll('[id^="item-input-"]').forEach((el, idx) => {
+          el.className = el.className
+            .replace(/item-active|opacity-40/g, "")
+            .trim();
+          if (step.i === -1) {
+            // Neutral
+          } else if (idx === step.i || idx === step.j) {
+            el.classList.add("item-active");
+          } else {
+            el.classList.add("opacity-40");
+          }
+        });
+
+        // Code highlighting
+        document
+          .querySelectorAll(".code-line")
+          .forEach((el) => el.classList.remove("active"));
+        if (step.L > 0) {
+          const codeEl = document.getElementById(`L${step.L}`);
+          if (codeEl) codeEl.classList.add("active");
+        }
+
+        // Text animation for explanation
+        const explainEl = document.getElementById("explanation");
+        explainEl.style.opacity = 0;
+        explainEl.style.transform = "translateY(5px)";
+        setTimeout(() => {
+          explainEl.innerText = step.msg;
+          explainEl.style.opacity = 1;
+          explainEl.style.transform = "translateY(0)";
+          explainEl.style.transition = "all 0.3s ease-out";
+        }, 50);
+
+        if (step.isFinal) {
+          confetti({
+            particleCount: 150,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ["#0ea5e9", "#7dd3fc", "#ffffff"],
+          });
+        }
+
+        // Update buttons
+        document.getElementById("btnPrev").disabled = currentStep <= 0;
+        document.getElementById("btnNext").disabled =
+          currentStep >= steps.length - 1;
+
+        const playBtns = [
+          document.getElementById("btnPlay"),
+          document.getElementById("mobilePlay"),
+        ];
+        playBtns.forEach((btn) => {
+          if (isAuto) btn.classList.add("paused");
+          else btn.classList.remove("paused");
+        });
+      }
+
+      function resetSim() {
+        clearTimeout(timer);
+        isAuto = false;
+        generateSteps();
+        currentStep = 0;
+        render();
+      }
+
+      function toggleAuto() {
+        isAuto = !isAuto;
+        const playBtn = document.getElementById("btnPlay");
+        const mobilePlay = document.getElementById("mobilePlay");
+
+        [playBtn, mobilePlay].forEach((btn) => {
+          if (isAuto) {
+            btn.innerHTML =
+              '<i class="fas fa-pause"></i> <span>Tạm dừng</span>';
+            btn.classList.add("paused");
+          } else {
+            btn.innerHTML =
+              '<i class="fas fa-play"></i> <span>Chạy tự động</span>';
+            btn.classList.remove("paused");
+          }
+        });
+
+        if (isAuto) autoRun();
+        else clearTimeout(timer);
+      }
+
+      function autoRun() {
+        if (!isAuto) return;
+        if (currentStep < steps.length - 1) {
+          nextStep();
+          const delay = 2000 - parseInt(document.getElementById("speed").value);
+          timer = setTimeout(autoRun, delay);
+        } else {
+          toggleAuto();
+        }
+      }
+
+      function nextStep() {
+        if (currentStep < steps.length - 1) {
+          currentStep++;
+          render();
+        }
+      }
+
+      function prevStep() {
+        if (currentStep > 0) {
+          currentStep--;
+          render();
+        }
+      }
+
+      // Initial Load
+      window.onload = () => {
+        updateItemsUI();
+      };
+    </script>
+  </body>
+</html>

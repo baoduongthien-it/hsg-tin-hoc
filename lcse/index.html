@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <meta
+      name="description"
+      content="Công cụ trực quan hóa thuật toán Longest Common Subsequence (LCS) chuyên nghiệp. Học Dynamic Programming qua hình ảnh sống động."
+    />
+    <base href="/hsg-tin-hoc/" />
+    <title>
+      Học thuật toán LCS - Xâu con chung dài nhất - Trực quan & Chuyên nghiệp
+    </title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ["Outfit", "sans-serif"],
+              mono: ["Fira Code", "monospace"],
+            },
+            colors: {
+              brand: {
+                50: "#ecfdf5",
+                100: "#d1fae5",
+                200: "#a7f3d0",
+                300: "#6ee7b7",
+                400: "#34d399",
+                500: "#10b981",
+                600: "#059669",
+                700: "#047857",
+                800: "#065f46",
+                900: "#064e3b",
+                950: "#022c22",
+              },
+            },
+            animation: {
+              "pulse-slow": "pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+              float: "float 3s ease-in-out infinite",
+            },
+            keyframes: {
+              float: {
+                "0%, 100%": { transform: "translateY(0)" },
+                "50%": { transform: "translateY(-10px)" },
+              },
+            },
+          },
+        },
+      };
+    </script>
+
+    <style type="text/tailwindcss">
+      @layer components {
+        .glass-card {
+          @apply bg-white/80 backdrop-blur-xl border border-white/20 shadow-xl;
+        }
+        .btn-primary {
+          @apply bg-brand-600 hover:bg-brand-700 text-white px-6 py-2.5 rounded-2xl font-semibold transition-all duration-300 shadow-lg shadow-brand-900/20 hover:shadow-brand-900/30 active:scale-95 disabled:opacity-50 disabled:pointer-events-none;
+        }
+        .btn-secondary {
+          @apply bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl font-medium transition-all duration-300 active:scale-95 disabled:opacity-50;
+        }
+        .code-line {
+          @apply px-4 py-1 border-l-2 border-transparent transition-all duration-200;
+        }
+        .code-line.active {
+          @apply bg-brand-500/10 border-brand-500 text-brand-600 font-medium;
+        }
+        .dp-cell {
+          @apply w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-lg border transition-all duration-300 relative text-sm font-mono;
+        }
+      }
+
+      .scroll-custom::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      .scroll-custom::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .scroll-custom::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 10px;
+      }
+      .scroll-custom::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+      }
+
+      .cell-target {
+        background: linear-gradient(135deg, #10b981, #059669) !important;
+        color: white;
+        border-color: #047857 !important;
+        transform: scale(1.1);
+        z-index: 10;
+        box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+      }
+      .cell-source {
+        background: rgba(59, 130, 246, 0.1) !important;
+        border-color: #3b82f6 !important;
+        color: #3b82f6 !important;
+      }
+      .cell-match {
+        background: linear-gradient(135deg, #8b5cf6, #7c3aed) !important;
+        color: white;
+        border-color: #6d28d9 !important;
+      }
+
+      body {
+        background-image: radial-gradient(
+            at 0% 0%,
+            hsla(160, 39%, 10%, 1) 0,
+            transparent 50%
+          ),
+          radial-gradient(at 50% 0%, hsla(180, 39%, 20%, 1) 0, transparent 50%),
+          radial-gradient(at 100% 0%, hsla(200, 49%, 15%, 1) 0, transparent 50%);
+        background-attachment: fixed;
+      }
+    </style>
+  </head>
+  <body
+    class="bg-slate-950 min-h-screen text-slate-100 selection:bg-brand-500/30"
+  >
+    <!-- Overlay for background softness -->
+    <div class="fixed inset-0 bg-slate-50/5 backdrop-blur-3xl -z-10"></div>
+
+    <header class="sticky top-0 z-50 px-4 py-3 md:px-8 md:py-4">
+      <nav
+        class="max-w-[1600px] mx-auto glass-card rounded-3xl flex items-center justify-between px-6 py-2 border-white/10 bg-white/5"
+      >
+        <div class="flex items-center gap-4">
+          <div
+            class="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-brand-500 to-teal-600 rounded-2xl flex items-center justify-center text-white shadow-md shadow-brand-500/10 animate-float"
+          >
+            <i class="fas fa-layer-group text-lg md:text-xl"></i>
+          </div>
+          <div>
+            <h1
+              class="text-lg md:text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400"
+            >
+              LCS Visualizer
+            </h1>
+            <p
+              class="text-[10px] md:text-xs text-slate-500 font-medium uppercase tracking-widest hidden md:block"
+            >
+              Interactive Algorithm Tool
+            </p>
+          </div>
+        </div>
+
+        <div class="hidden lg:flex items-center gap-4">
+          <div
+            class="flex items-center gap-1 bg-slate-900/50 p-1.5 rounded-2xl border border-white/5"
+          >
+            <button
+              id="btnPrev"
+              onclick="prevStep()"
+              class="p-2.5 hover:bg-white/10 rounded-xl transition-all disabled:opacity-20"
+            >
+              <i class="fas fa-arrow-left"></i>
+            </button>
+            <button
+              id="btnPlay"
+              onclick="toggleAuto()"
+              class="btn-primary flex items-center gap-2 min-w-[140px] justify-center group"
+            >
+              <i class="fas fa-play group-[.paused]:hidden"></i>
+              <span class="group-[.paused]:hidden">Chạy tự động</span>
+              <i class="fas fa-pause hidden group-[.paused]:block"></i>
+              <span class="hidden group-[.paused]:block">Tạm dừng</span>
+            </button>
+            <button
+              id="btnNext"
+              onclick="nextStep()"
+              class="p-2.5 hover:bg-white/10 rounded-xl transition-all disabled:opacity-20"
+            >
+              <i class="fas fa-arrow-right"></i>
+            </button>
+          </div>
+          <button
+            onclick="resetSim()"
+            class="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-all"
+            title="Làm mới"
+          >
+            <i class="fas fa-rotate"></i>
+          </button>
+        </div>
+
+        <div class="lg:hidden flex items-center gap-2">
+          <button
+            onclick="resetSim()"
+            class="p-2 text-slate-400"
+          >
+            <i class="fas fa-rotate"></i>
+          </button>
+          <button
+            id="mobileNext"
+            onclick="nextStep()"
+            class="p-3 bg-brand-600 rounded-xl text-white"
+          >
+            <i class="fas fa-step-forward"></i>
+          </button>
+        </div>
+      </nav>
+    </header>
+
+    <main class="p-4 md:p-6 max-w-[1600px] mx-auto">
+      <div class="grid grid-cols-12 gap-6">
+        <!-- Sidebar Config -->
+        <aside class="col-span-12 lg:col-span-3 space-y-6">
+          <section
+            class="glass-card rounded-[2rem] p-6 bg-white/5 border-white/5"
+          >
+            <div class="flex items-center gap-3 mb-6">
+              <span class="w-2 h-6 bg-brand-500 rounded-full"></span>
+              <h2
+                class="text-sm font-bold text-slate-400 uppercase tracking-widest"
+              >
+                Cấu hình Xâu
+              </h2>
+            </div>
+
+            <div class="space-y-5">
+              <div class="space-y-2">
+                <label class="text-xs font-semibold text-slate-500 px-1"
+                  >Xâu S (Dòng)</label
+                >
+                <input
+                  type="text"
+                  id="inputS"
+                  value="AGGTAB"
+                  maxlength="10"
+                  class="w-full bg-slate-900/50 border border-white/10 p-3.5 rounded-2xl text-sm transition-all focus:ring-2 focus:ring-brand-500 outline-none font-mono uppercase"
+                  oninput="this.value = this.value.toUpperCase(); resetSim();"
+                />
+              </div>
+              <div class="space-y-2">
+                <label class="text-xs font-semibold text-slate-500 px-1"
+                  >Xâu T (Cột)</label
+                >
+                <input
+                  type="text"
+                  id="inputT"
+                  value="GXTXAYB"
+                  maxlength="10"
+                  class="w-full bg-slate-900/50 border border-white/10 p-3.5 rounded-2xl text-sm transition-all focus:ring-2 focus:ring-brand-500 outline-none font-mono uppercase"
+                  oninput="this.value = this.value.toUpperCase(); resetSim();"
+                />
+              </div>
+              <button
+                onclick="randomizeStrings()"
+                class="w-full btn-secondary flex items-center justify-center gap-2"
+              >
+                <i class="fas fa-random"></i> Ngẫu nhiên
+              </button>
+            </div>
+          </section>
+
+          <section
+            class="glass-card rounded-[2rem] p-6 bg-white/5 border-white/5"
+          >
+            <h3
+              class="text-xs font-bold text-brand-400 uppercase tracking-widest mb-4 flex items-center gap-2"
+            >
+              <i class="fas fa-info-circle"></i> Giải thích màu
+            </h3>
+            <div class="space-y-3 text-xs">
+              <div class="flex items-center gap-3">
+                <span
+                  class="w-4 h-4 rounded bg-brand-500 shadow-sm shadow-brand-500/50"
+                ></span>
+                <span class="text-slate-400">Ô đang tính toán</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <span
+                  class="w-4 h-4 rounded bg-purple-500 shadow-sm shadow-purple-500/50"
+                ></span>
+                <span class="text-slate-400">Ký tự trùng nhau (Match)</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <span
+                  class="w-4 h-4 rounded bg-blue-500/20 border border-blue-500/50"
+                ></span>
+                <span class="text-slate-400">Ô nguồn tham chiếu</span>
+              </div>
+            </div>
+          </section>
+        </aside>
+
+        <!-- Center Visualization -->
+        <div class="col-span-12 lg:col-span-6 space-y-6">
+          <section
+            class="glass-card rounded-[2rem] p-6 md:p-8 bg-white/5 border-white/10 min-h-[500px] flex flex-col overflow-hidden"
+          >
+            <div class="mb-8">
+              <h2 class="text-xl font-bold text-white">
+                Bảng Quy hoạch động LCS
+              </h2>
+              <p class="text-sm text-slate-400 mt-1">
+                Trực quan hóa quá trình tìm xâu con chung dài nhất
+              </p>
+            </div>
+
+            <div
+              class="flex-1 flex items-center justify-center overflow-auto scroll-custom p-4"
+            >
+              <div
+                id="dpGridContainer"
+                class="inline-block"
+              >
+                <!-- Grid injected here -->
+              </div>
+            </div>
+          </section>
+
+          <!-- Status Card -->
+          <section
+            id="statusCard"
+            class="relative group overflow-hidden rounded-[2rem] p-8 transition-all duration-500 bg-gradient-to-br from-brand-900/80 to-slate-950 border border-brand-500/20 shadow-2xl shadow-brand-500/5"
+          >
+            <div
+              class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 mix-blend-overlay"
+            ></div>
+            <div
+              class="relative z-10 flex flex-col md:flex-row gap-6 items-start"
+            >
+              <div
+                class="w-12 h-12 rounded-2xl bg-brand-500/20 flex items-center justify-center text-brand-400 border border-brand-500/30 flex-shrink-0"
+              >
+                <i class="fas fa-lightbulb text-xl animate-pulse"></i>
+              </div>
+              <div class="space-y-3">
+                <p
+                  class="text-xs font-bold text-brand-400 uppercase tracking-widest"
+                >
+                  Phân tích bước hiện tại
+                </p>
+                <p
+                  id="explanation"
+                  class="text-base md:text-xl font-medium leading-relaxed text-slate-100 italic"
+                >
+                  Nhấn "Tiếp theo" để bắt đầu khám phá thuật toán LCS.
+                </p>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- Right Side: Code & Meta -->
+        <div class="col-span-12 lg:col-span-3 space-y-6">
+          <section
+            class="glass-card rounded-[2rem] bg-[#0f172a] border-white/5 overflow-hidden flex flex-col h-full ring-1 ring-white/5 shadow-2xl"
+          >
+            <div
+              class="bg-slate-900/80 px-5 py-4 border-b border-white/5 flex items-center justify-between"
+            >
+              <div class="flex items-center gap-3">
+                <div class="flex gap-1.5">
+                  <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                  <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                </div>
+                <span
+                  class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-2"
+                  >lcs_logic.cpp</span
+                >
+              </div>
+            </div>
+
+            <div
+              class="p-6 font-mono text-[13px] leading-7 flex-1 text-slate-400 overflow-hidden relative"
+            >
+              <div
+                id="L1"
+                class="code-line"
+              >
+                for (int i = 1; i <= n; i++) {
+              </div>
+              <div
+                id="L2"
+                class="code-line pl-6"
+              >
+                for (int j = 1; j <= m; j++) {
+              </div>
+              <div
+                id="L3"
+                class="code-line pl-12"
+              >
+                if (s[i-1] == t[j-1]) {
+              </div>
+              <div
+                id="L4"
+                class="code-line pl-[4.5rem]"
+              >
+                dp[i][j] = dp[i-1][j-1] + 1;
+              </div>
+              <div
+                id="L5"
+                class="code-line pl-12"
+              >
+                } else {
+              </div>
+              <div
+                id="L6"
+                class="code-line pl-[4.5rem]"
+              >
+                dp[i][j] = max(dp[i-1][j], dp[i][j-1]);
+              </div>
+              <div
+                id="L7"
+                class="code-line pl-12"
+              >
+                }
+              </div>
+              <div
+                id="L8"
+                class="code-line pl-6"
+              >
+                }
+              </div>
+              <div
+                id="L9"
+                class="code-line"
+              >
+                }
+              </div>
+              <div
+                id="L10"
+                class="code-line text-emerald-400 font-semibold mt-4"
+              >
+                return dp[n][m];
+              </div>
+
+              <!-- Speed Control -->
+              <div
+                class="mt-8 p-4 rounded-2xl bg-slate-900/50 border border-white/5"
+              >
+                <div class="flex justify-between items-center mb-3">
+                  <span
+                    class="text-[10px] font-bold text-slate-500 uppercase tracking-widest"
+                    >Tốc độ mô phỏng</span
+                  >
+                  <span
+                    id="speedVal"
+                    class="text-[10px] font-bold text-brand-400"
+                    >1.0s</span
+                  >
+                </div>
+                <input
+                  type="range"
+                  id="speed"
+                  min="200"
+                  max="1800"
+                  value="1000"
+                  class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-brand-500 transition-all"
+                  oninput="document.getElementById('speedVal').innerText = ((2000 - this.value)/1000).toFixed(1) + 's'"
+                />
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <!-- Mobile Controls Float -->
+    <div
+      class="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 p-2 bg-slate-900 border border-white/10 rounded-2xl shadow-2xl glass-card"
+    >
+      <button
+        onclick="prevStep()"
+        class="p-3 text-slate-400"
+      >
+        <i class="fas fa-arrow-left"></i>
+      </button>
+      <button
+        id="mobilePlay"
+        onclick="toggleAuto()"
+        class="px-6 py-3 bg-brand-600 rounded-xl text-white font-bold flex items-center gap-2"
+      >
+        <i class="fas fa-play"></i>
+      </button>
+      <button
+        onclick="nextStep()"
+        class="p-3 text-slate-400"
+      >
+        <i class="fas fa-arrow-right"></i>
+      </button>
+    </div>
+
+    <script>
+      let s = "";
+      let t = "";
+      let steps = [];
+      let currentStep = -1;
+      let isAuto = false;
+      let timer = null;
+
+      function randomizeStrings() {
+        const chars = "ABCDEFGHIJ";
+        const randStr = (len) =>
+          Array.from(
+            { length: len },
+            () => chars[Math.floor(Math.random() * chars.length)]
+          ).join("");
+        document.getElementById("inputS").value = randStr(5);
+        document.getElementById("inputT").value = randStr(6);
+        resetSim();
+      }
+
+      function generateSteps() {
+        s = document.getElementById("inputS").value.toUpperCase() || "";
+        t = document.getElementById("inputT").value.toUpperCase() || "";
+        const n = s.length;
+        const m = t.length;
+
+        let dp = Array.from({ length: n + 1 }, () => Array(m + 1).fill(0));
+        steps = [
+          {
+            dp: dp.map((row) => [...row]),
+            i: -1,
+            j: -1,
+            L: 0,
+            msg: "Khởi tạo bảng DP kích thước (n+1)x(m+1) với giá trị 0.",
+          },
+        ];
+
+        for (let i = 1; i <= n; i++) {
+          steps.push({
+            dp: dp.map((row) => [...row]),
+            i,
+            j: -1,
+            L: 1,
+            msg: `Xét ký tự s[${i - 1}] = '${s[i - 1]}'.`,
+          });
+          for (let j = 1; j <= m; j++) {
+            steps.push({
+              dp: dp.map((row) => [...row]),
+              i,
+              j,
+              L: 2,
+              msg: `So sánh s[${i - 1}] ('${s[i - 1]}') và t[${j - 1}] ('${
+                t[j - 1]
+              }').`,
+            });
+
+            if (s[i - 1] === t[j - 1]) {
+              dp[i][j] = dp[i - 1][j - 1] + 1;
+              steps.push({
+                dp: dp.map((row) => [...row]),
+                i,
+                j,
+                L: 4,
+                msg: `Giống nhau! Cập nhật dp[${i}][${j}] = dp[${i - 1}][${
+                  j - 1
+                }] + 1 = ${dp[i][j]}.`,
+              });
+            } else {
+              dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+              steps.push({
+                dp: dp.map((row) => [...row]),
+                i,
+                j,
+                L: 6,
+                msg: `Khác nhau! Lấy max(dp[${i - 1}][${j}], dp[${i}][${
+                  j - 1
+                }]) = ${dp[i][j]}.`,
+              });
+            }
+          }
+        }
+
+        steps.push({
+          dp: dp.map((row) => [...row]),
+          i: -1,
+          j: -1,
+          L: 10,
+          isFinal: true,
+          msg: `Hoàn tất! Độ dài xâu con chung dài nhất là ${dp[n][m]}.`,
+        });
+      }
+
+      function render() {
+        if (currentStep < 0 || currentStep >= steps.length) return;
+        const step = steps[currentStep];
+        const container = document.getElementById("dpGridContainer");
+        const n = s.length;
+        const m = t.length;
+
+        let html = `<div class="grid gap-1" style="grid-template-columns: repeat(${
+          m + 2
+        }, minmax(0, 1fr));">`;
+
+        // Empty corner
+        html += `<div class="w-10 h-10 md:w-12 md:h-12"></div>`;
+        // Top labels (T)
+        html += `<div class="dp-cell border-transparent text-slate-500 font-bold">∅</div>`;
+        for (let char of t) {
+          html += `<div class="dp-cell border-transparent text-brand-400 font-bold">${char}</div>`;
+        }
+
+        for (let i = 0; i <= n; i++) {
+          // Left labels (S)
+          const sLabel = i === 0 ? "∅" : s[i - 1];
+          html += `<div class="dp-cell border-transparent text-brand-400 font-bold">${sLabel}</div>`;
+
+          for (let j = 0; j <= m; j++) {
+            let statusClass = "bg-slate-900/40 border-white/5 text-slate-400";
+
+            if (i === step.i && j === step.j) {
+              statusClass = "cell-target animate-pulse-slow";
+            } else if (
+              step.i !== -1 &&
+              step.j !== -1 &&
+              i === step.i &&
+              j === step.j
+            ) {
+              // already handled above
+            } else if (step.i !== -1 && step.j !== -1) {
+              if (s[step.i - 1] === t[step.j - 1]) {
+                if (i === step.i - 1 && j === step.j - 1)
+                  statusClass = "cell-source";
+              } else {
+                if (
+                  (i === step.i - 1 && j === step.j) ||
+                  (i === step.i && j === step.j - 1)
+                )
+                  statusClass = "cell-source";
+              }
+            }
+
+            // Permanent match highlight if final or if calculated that way
+            if (i > 0 && j > 0 && s[i - 1] === t[j - 1] && step.dp[i][j] > 0) {
+              if (!(i === step.i && j === step.j)) {
+                statusClass =
+                  "bg-purple-500/10 border-purple-500/20 text-purple-400";
+              }
+            }
+
+            html += `<div class="dp-cell ${statusClass}">${step.dp[i][j]}</div>`;
+          }
+        }
+        html += `</div>`;
+        container.innerHTML = html;
+
+        // Code highlight
+        document
+          .querySelectorAll(".code-line")
+          .forEach((el) => el.classList.remove("active"));
+        if (step.L > 0) {
+          const codeEl = document.getElementById(`L${step.L}`);
+          if (codeEl) codeEl.classList.add("active");
+        }
+
+        // Explanation
+        const explainEl = document.getElementById("explanation");
+        explainEl.innerText = step.msg;
+
+        if (step.isFinal) {
+          confetti({
+            particleCount: 150,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ["#10b981", "#34d399", "#ffffff"],
+          });
+        }
+
+        // Buttons
+        document.getElementById("btnPrev").disabled = currentStep <= 0;
+        document.getElementById("btnNext").disabled =
+          currentStep >= steps.length - 1;
+      }
+
+      function resetSim() {
+        clearTimeout(timer);
+        isAuto = false;
+        generateSteps();
+        currentStep = 0;
+        render();
+        updateButtonUI();
+      }
+
+      function toggleAuto() {
+        isAuto = !isAuto;
+        updateButtonUI();
+        if (isAuto) autoRun();
+        else clearTimeout(timer);
+      }
+
+      function updateButtonUI() {
+        const playBtn = document.getElementById("btnPlay");
+        const mobilePlay = document.getElementById("mobilePlay");
+        [playBtn, mobilePlay].forEach((btn) => {
+          if (isAuto) {
+            btn.innerHTML =
+              '<i class="fas fa-pause"></i> <span>Tạm dừng</span>';
+            btn.classList.add("paused");
+          } else {
+            btn.innerHTML = '<i class="fas fa-play"></i> <span>Tự động</span>';
+            btn.classList.remove("paused");
+          }
+        });
+      }
+
+      function autoRun() {
+        if (!isAuto) return;
+        if (currentStep < steps.length - 1) {
+          nextStep();
+          const delay = 2000 - parseInt(document.getElementById("speed").value);
+          timer = setTimeout(autoRun, delay);
+        } else {
+          toggleAuto();
+        }
+      }
+
+      function nextStep() {
+        if (currentStep < steps.length - 1) {
+          currentStep++;
+          render();
+        }
+      }
+
+      function prevStep() {
+        if (currentStep > 0) {
+          currentStep--;
+          render();
+        }
+      }
+
+      window.onload = resetSim;
+    </script>
+  </body>
+</html>

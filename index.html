@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/hsg-tin-hoc/" />
+    <title>Thuật toán lập trình</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap");
+      body {
+        font-family: "Inter", sans-serif;
+      }
+      .card-hover:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+      }
+    </style>
+  </head>
+  <body class="bg-slate-50 min-h-screen">
+    <header class="bg-indigo-900 text-white py-16 px-6">
+      <div class="max-w-5xl mx-auto text-center">
+        <h1 class="text-4xl md:text-5xl font-extrabold mb-4">
+          Danh mục Thuật Toán
+        </h1>
+        <p class="text-indigo-200">
+          Hệ thống quản lý bài giảng trực quan hóa thuật toán
+        </p>
+      </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-6 -mt-10">
+      <div
+        id="project-container"
+        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+      >
+        <div class="text-center py-20 col-span-full">
+          Đang tải danh sách bài tập...
+        </div>
+      </div>
+    </main>
+
+    <script>
+      // 1. DATA: Quản lý toàn bộ thông tin các bài tập tại đây
+      const projects = [
+        {
+          id: "knapsack",
+          title: "Knapsack 1 & 2",
+          description: "Bài toán cái túi 1 & 2",
+          path: "./knapsack/index.html",
+          icon: "fa-box-open",
+          color: "indigo",
+          tags: ["Cơ bản", "KNAPSACK"],
+        },
+      ];
+
+      // 2. LOGIC: Hàm render dữ liệu ra giao diện
+      function renderProjects() {
+        const container = document.getElementById("project-container");
+
+        const html = projects
+          .map(
+            (p) => `
+                <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-lg transition-all duration-300 card-hover flex flex-col h-full group">
+                    <div class="w-12 h-12 bg-${
+                      p.color
+                    }-100 rounded-2xl flex items-center justify-center text-${
+              p.color
+            }-600 mb-5 group-hover:bg-${
+              p.color
+            }-600 group-hover:text-white transition-colors">
+                        <i class="fas ${p.icon} text-xl"></i>
+                    </div>
+                    
+                    <h3 class="text-xl font-bold mb-2 text-slate-800">${
+                      p.title
+                    }</h3>
+                    <p class="text-slate-500 text-sm mb-4 flex-grow leading-relaxed">
+                        ${p.description}
+                    </p>
+                    
+                    <div class="flex flex-wrap gap-2 mb-6">
+                        ${p.tags
+                          .map(
+                            (tag) => `
+                            <span class="text-[10px] font-bold px-2 py-0.5 bg-slate-100 rounded-md text-slate-500 uppercase">${tag}</span>
+                        `
+                          )
+                          .join("")}
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-100">
+                        <a href="${
+                          p.path
+                        }" class="flex items-center justify-between w-full text-slate-900 font-bold hover:text-${
+              p.color
+            }-600 transition-colors">
+                            Xem mô phỏng
+                            <i class="fas fa-arrow-right text-xs"></i>
+                        </a>
+                    </div>
+                </div>
+            `
+          )
+          .join("");
+
+        container.innerHTML = html;
+      }
+
+      // Chạy hàm render khi trang load xong
+      window.addEventListener("DOMContentLoaded", renderProjects);
+    </script>
+  </body>
+</html>
