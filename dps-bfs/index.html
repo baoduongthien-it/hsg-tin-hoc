@@ -603,6 +603,13 @@
 
         renderGraph();
         updateAdjListUI();
+
+        // Cập nhật ô nhập dữ liệu thủ công
+        const inputText =
+          `${n} ${edges.length}\n` +
+          edges.map((e) => `${e.u} ${e.v}`).join("\n");
+        document.getElementById("manualInput").value = inputText;
+
         resetSim();
       }
 
