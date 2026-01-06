@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <meta
+      name="description"
+      content="Trực quan hoá thuật toán DFS và BFS - Tìm kiếm trên đồ thị một cách sinh động và chuyên nghiệp."
+    />
+    <base href="/hsg-tin-hoc/" />
+    <title>DFS & BFS Visualizer - Trực quan hoá đồ thị</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ["Outfit", "sans-serif"],
+              mono: ["Fira Code", "monospace"],
+            },
+            colors: {
+              brand: {
+                50: "#f0f9ff",
+                100: "#e0f2fe",
+                200: "#bae6fd",
+                300: "#7dd3fc",
+                400: "#38bdf8",
+                500: "#0ea5e9",
+                600: "#0284c7",
+                700: "#0369a1",
+                800: "#075985",
+                900: "#0c4a6e",
+                950: "#082f49",
+              },
+            },
+            animation: {
+              "pulse-slow": "pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+              float: "float 3s ease-in-out infinite",
+            },
+            keyframes: {
+              float: {
+                "0%, 100%": { transform: "translateY(0)" },
+                "50%": { transform: "translateY(-10px)" },
+              },
+            },
+          },
+        },
+      };
+    </script>
+
+    <style type="text/tailwindcss">
+      @layer components {
+        .glass-card {
+          @apply bg-white/80 backdrop-blur-xl border border-white/20 shadow-xl;
+        }
+        .btn-primary {
+          @apply bg-brand-600 hover:bg-brand-700 text-white px-6 py-2.5 rounded-2xl font-semibold transition-all duration-300 shadow-lg shadow-brand-900/20 hover:shadow-brand-900/30 active:scale-95 disabled:opacity-50 disabled:pointer-events-none;
+        }
+        .btn-secondary {
+          @apply bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl font-medium transition-all duration-300 active:scale-95 disabled:opacity-50;
+        }
+        .code-line {
+          @apply px-4 py-1 border-l-2 border-transparent transition-all duration-200;
+        }
+        .code-line.active {
+          @apply bg-brand-500/10 border-brand-500 text-brand-400 font-medium;
+        }
+        .node {
+          @apply transition-all duration-500 cursor-pointer;
+        }
+        .edge {
+          @apply transition-all duration-500 stroke-slate-700;
+        }
+      }
+
+      .scroll-custom::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      .scroll-custom::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .scroll-custom::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 10px;
+      }
+      .scroll-custom::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+      }
+
+      body {
+        background-image: radial-gradient(
+            at 0% 0%,
+            hsla(200, 39%, 10%, 1) 0,
+            transparent 50%
+          ),
+          radial-gradient(at 50% 0%, hsla(215, 39%, 20%, 1) 0, transparent 50%),
+          radial-gradient(at 100% 0%, hsla(230, 49%, 15%, 1) 0, transparent 50%);
+        background-attachment: fixed;
+      }
+
+      .node-visited {
+        fill: #10b981 !important;
+        filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.6));
+      }
+      .node-current {
+        fill: #0ea5e9 !important;
+        stroke: #fff !important;
+        stroke-width: 3px !important;
+        filter: drop-shadow(0 0 12px rgba(14, 165, 233, 0.8));
+      }
+      .node-queued {
+        fill: #f59e0b !important;
+        filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.6));
+      }
+      .edge-active {
+        stroke: #0ea5e9 !important;
+        stroke-width: 3px !important;
+      }
+    </style>
+  </head>
+  <body
+    class="bg-slate-950 min-h-screen text-slate-100 selection:bg-brand-500/30"
+  >
+    <div class="fixed inset-0 bg-slate-50/5 backdrop-blur-3xl -z-10"></div>
+
+    <header class="sticky top-0 z-50 px-4 py-3 md:px-8 md:py-4">
+      <nav
+        class="max-w-[1600px] mx-auto glass-card rounded-3xl flex items-center justify-between px-6 py-2 border-white/10 bg-white/5"
+      >
+        <div class="flex items-center gap-4">
+          <div
+            class="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-brand-500 to-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-md shadow-brand-500/10 animate-float"
+          >
+            <i class="fas fa-project-diagram text-lg md:text-xl"></i>
+          </div>
+          <div>
+            <h1
+              class="text-lg md:text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400"
+            >
+              DFS & BFS Visualizer
+            </h1>
+            <p
+              class="text-[10px] md:text-xs text-slate-500 font-medium uppercase tracking-widest hidden md:block"
+            >
+              Interactive Graph Tool
+            </p>
+          </div>
+        </div>
+
+        <div class="hidden lg:flex items-center gap-4">
+          <div
+            class="flex items-center gap-1 bg-slate-900/50 p-1.5 rounded-2xl border border-white/5"
+          >
+            <button
+              id="btnPrev"
+              onclick="prevStep()"
+              class="p-2.5 hover:bg-white/10 rounded-xl transition-all disabled:opacity-20 text-slate-400"
+            >
+              <i class="fas fa-arrow-left"></i>
+            </button>
+            <button
+              id="btnPlay"
+              onclick="toggleAuto()"
+              class="btn-primary flex items-center gap-2 min-w-[140px] justify-center group"
+            >
+              <i class="fas fa-play group-[.paused]:hidden"></i>
+              <span class="group-[.paused]:hidden">Chạy tự động</span>
+              <i class="fas fa-pause hidden group-[.paused]:block"></i>
+              <span class="hidden group-[.paused]:block">Tạm dừng</span>
+            </button>
+            <button
+              id="btnNext"
+              onclick="nextStep()"
+              class="p-2.5 hover:bg-white/10 rounded-xl transition-all disabled:opacity-20 text-slate-400"
+            >
+              <i class="fas fa-arrow-right"></i>
+            </button>
+          </div>
+          <button
+            onclick="resetSim()"
+            class="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-all"
+            title="Làm mới"
+          >
+            <i class="fas fa-rotate"></i>
+          </button>
+        </div>
+
+        <div class="lg:hidden flex items-center gap-2">
+          <button
+            onclick="resetSim()"
+            class="p-2 text-slate-400"
+          >
+            <i class="fas fa-rotate"></i>
+          </button>
+          <button
+            id="mobileNext"
+            onclick="nextStep()"
+            class="p-3 bg-brand-600 rounded-xl text-white"
+          >
+            <i class="fas fa-step-forward"></i>
+          </button>
+        </div>
+      </nav>
+    </header>
+
+    <main class="p-4 md:p-6 max-w-[1600px] mx-auto">
+      <div class="grid grid-cols-12 gap-6">
+        <!-- Left Sidebar: Graph Config -->
+        <aside class="col-span-12 lg:col-span-3 space-y-6">
+          <section
+            class="glass-card rounded-[2rem] p-6 bg-white/5 border-white/5"
+          >
+            <div class="flex items-center gap-3 mb-6">
+              <span class="w-2 h-6 bg-brand-500 rounded-full"></span>
+              <h2
+                class="text-sm font-bold text-slate-400 uppercase tracking-widest"
+              >
+                Cấu hình
+              </h2>
+            </div>
+            <div class="space-y-5">
+              <div class="space-y-2">
+                <label class="text-xs font-semibold text-slate-500 px-1"
+                  >Thuật toán</label
+                >
+                <select
+                  id="algoSelect"
+                  onchange="resetSim()"
+                  class="w-full bg-slate-900 border border-white/10 p-3.5 rounded-2xl text-sm focus:ring-2 focus:ring-brand-500 outline-none text-white appearance-none"
+                >
+                  <option value="bfs">Breadth-First Search (BFS)</option>
+                  <option value="dfs">Depth-First Search (DFS)</option>
+                </select>
+              </div>
+              <div class="space-y-2">
+                <label class="text-xs font-semibold text-slate-500 px-1"
+                  >Số lượng đỉnh (N)</label
+                >
+                <input
+                  type="number"
+                  id="inputN"
+                  value="7"
+                  min="3"
+                  max="15"
+                  class="w-full bg-slate-900/50 border border-white/10 p-3.5 rounded-2xl text-sm transition-all focus:ring-2 focus:ring-brand-500 outline-none"
+                  onchange="regenerateGraph()"
+                />
+              </div>
+              <div class="space-y-2">
+                <label class="text-xs font-semibold text-slate-500 px-1"
+                  >Đỉnh bắt đầu</label
+                >
+                <input
+                  type="number"
+                  id="startNode"
+                  value="0"
+                  min="0"
+                  max="14"
+                  class="w-full bg-slate-900/50 border border-white/10 p-3.5 rounded-2xl text-sm outline-none"
+                  onchange="resetSim()"
+                />
+              </div>
+              <button
+                onclick="regenerateGraph()"
+                class="w-full btn-secondary flex items-center justify-center gap-2"
+              >
+                <i class="fas fa-random"></i> Đồ thị ngẫu nhiên
+              </button>
+
+              <div class="space-y-3 pt-4 border-t border-white/5">
+                <label class="text-xs font-semibold text-slate-500 px-1"
+                  >Nhập dữ liệu (n m \n u v ...)</label
+                >
+                <textarea
+                  id="manualInput"
+                  rows="4"
+                  class="w-full bg-slate-900/50 border border-white/10 p-3 rounded-2xl text-[10px] font-mono outline-none focus:ring-2 focus:ring-brand-500 scroll-custom transition-all"
+                  placeholder="4 4
+0 1
+1 2
+2 3
+3 0"
+                ></textarea>
+                <button
+                  onclick="buildGraphFromManualInput()"
+                  class="w-full btn-primary !bg-emerald-600 hover:!bg-emerald-700 text-sm shadow-emerald-900/20"
+                >
+                  <i class="fas fa-hammer"></i> Xây dựng đồ thị
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <section
+            class="glass-card rounded-[2rem] p-6 bg-white/5 border-white/5"
+          >
+            <div class="flex items-center gap-3 mb-4">
+              <span class="w-2 h-6 bg-amber-500 rounded-full"></span>
+              <h2
+                class="text-sm font-bold text-slate-400 uppercase tracking-widest"
+              >
+                Danh sách kề
+              </h2>
+            </div>
+            <div
+              id="adjListUI"
+              class="text-xs font-mono space-y-2 max-h-[300px] overflow-y-auto scroll-custom pr-2"
+            >
+              <!-- Adj list items -->
+            </div>
+          </section>
+        </aside>
+
+        <!-- Center: Graph Visualization -->
+        <div class="col-span-12 lg:col-span-6 space-y-6">
+          <section
+            class="glass-card rounded-[2rem] p-6 md:p-8 bg-white/5 border-white/10 min-h-[500px] flex flex-col relative overflow-hidden"
+          >
+            <div class="flex justify-between items-center mb-4 z-10">
+              <h2
+                class="text-xl font-bold text-white"
+                id="visTitle"
+              >
+                Mô phỏng BFS
+              </h2>
+              <div class="flex gap-4 text-[10px] md:text-xs">
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-brand-500"></span> Đang
+                  xét
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Đã
+                  duyệt
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-amber-500"></span> Trong
+                  hàng đợi/ngăn xếp
+                </div>
+              </div>
+            </div>
+
+            <div
+              id="graphContainer"
+              class="flex-1 flex items-center justify-center"
+            >
+              <svg
+                id="graphSvg"
+                viewBox="0 0 800 500"
+                class="w-full h-full max-h-[500px]"
+              >
+                <defs>
+                  <marker
+                    id="arrowhead"
+                    markerWidth="10"
+                    markerHeight="7"
+                    refX="25"
+                    refY="3.5"
+                    orient="auto"
+                  >
+                    <polygon
+                      points="0 0, 10 3.5, 0 7"
+                      fill="#475569"
+                    />
+                  </marker>
+                </defs>
+                <g id="edgesGroup"></g>
+                <g id="nodesGroup"></g>
+              </svg>
+            </div>
+          </section>
+
+          <!-- Explanation Card -->
+          <section
+            id="statusCard"
+            class="relative group overflow-hidden rounded-[2rem] p-8 transition-all duration-500 bg-gradient-to-br from-brand-900/80 to-slate-950 border border-brand-500/20 shadow-2xl shadow-brand-500/5"
+          >
+            <div
+              class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 mix-blend-overlay"
+            ></div>
+            <div
+              class="absolute -right-16 -bottom-16 w-64 h-64 bg-brand-500/10 rounded-full blur-[100px] group-hover:bg-brand-500/20 transition-all duration-700"
+            ></div>
+            <div
+              class="relative z-10 flex flex-col md:flex-row gap-6 items-start"
+            >
+              <div
+                class="w-12 h-12 rounded-2xl bg-brand-500/20 flex items-center justify-center text-brand-400 border border-brand-500/30 flex-shrink-0"
+              >
+                <i class="fas fa-lightbulb text-xl animate-pulse"></i>
+              </div>
+              <div class="space-y-3">
+                <p
+                  class="text-xs font-bold text-brand-400 uppercase tracking-widest"
+                >
+                  Trạng thái hiện tại
+                </p>
+                <p
+                  id="explanation"
+                  class="text-base md:text-xl font-medium leading-relaxed text-slate-100 italic"
+                >
+                  Chọn thuật toán và nhấn "Tiếp theo" để bắt đầu quá trình duyệt
+                  đồ thị.
+                </p>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- Right Side: Code & Structure Visualization -->
+        <aside class="col-span-12 lg:col-span-3 space-y-6">
+          <section
+            class="glass-card rounded-[2rem] bg-[#0f172a] border-white/5 overflow-hidden flex flex-col ring-1 ring-white/5 shadow-2xl"
+          >
+            <div
+              class="bg-slate-900/80 px-5 py-4 border-b border-white/5 flex items-center justify-between"
+            >
+              <span
+                class="text-[10px] font-bold text-slate-500 uppercase tracking-widest"
+                id="codeFileName"
+                >bfs_search.cpp</span
+              >
+              <span class="text-[9px] font-mono text-slate-500">C++</span>
+            </div>
+            <div
+              id="codeArea"
+              class="p-6 font-mono text-[11px] md:text-[12px] leading-6 flex-1 text-slate-400 overflow-hidden relative min-h-[300px]"
+            >
+              <!-- Code lines will be injected here -->
+            </div>
+          </section>
+
+          <section
+            class="glass-card rounded-[2rem] p-6 bg-white/5 border-white/5"
+          >
+            <div class="flex items-center gap-3 mb-4">
+              <span class="w-2 h-6 bg-purple-500 rounded-full"></span>
+              <h2
+                class="text-sm font-bold text-slate-400 uppercase tracking-widest"
+                id="structLabel"
+              >
+                Queue / Stack
+              </h2>
+            </div>
+            <div
+              id="structureContainer"
+              class="flex flex-col-reverse gap-2 bg-slate-900/50 p-4 rounded-2xl min-h-[150px] items-center justify-start border border-white/5"
+            >
+              <!-- Stack/Queue items -->
+            </div>
+            <p
+              class="text-[10px] text-slate-500 text-center mt-3 uppercase tracking-wider font-bold"
+              id="structName"
+            >
+              Hàng đợi (Queue)
+            </p>
+          </section>
+        </aside>
+      </div>
+    </main>
+
+    <!-- Mobile Controls Float -->
+    <div
+      class="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 p-2 bg-slate-900 border border-white/10 rounded-2xl shadow-2xl glass-card"
+    >
+      <button
+        onclick="prevStep()"
+        class="p-3 text-slate-400"
+      >
+        <i class="fas fa-arrow-left"></i>
+      </button>
+      <button
+        id="mobilePlay"
+        onclick="toggleAuto()"
+        class="px-6 py-3 bg-brand-600 rounded-xl text-white font-bold flex items-center gap-2"
+      >
+        <i class="fas fa-play"></i>
+      </button>
+      <button
+        onclick="nextStep()"
+        class="p-3 text-slate-400"
+      >
+        <i class="fas fa-arrow-right"></i>
+      </button>
+    </div>
+
+    <script>
+      let nodes = [];
+      let edges = [];
+      let adj = {};
+      let steps = [];
+      let currentStep = -1;
+      let isAuto = false;
+      let timer = null;
+      let n = 7;
+
+      const codeSnippets = {
+        bfs: `void bfs(int s) {
+  queue<int> q;
+  q.push(s);
+  visited[s] = true;
+  while (!q.empty()) {
+    int u = q.front(); q.pop();
+    for (int v : adj[u]) {
+      if (!visited[v]) {
+        visited[v] = true;
+        q.push(v);
+      }
+    }
+  }
+}`,
+        dfs: `void dfs(int u) {
+  visited[u] = true;
+  for (int v : adj[u]) {
+    if (!visited[v]) {
+      dfs(v);
+    }
+  }
+}`,
+      };
+
+      function updateCodeArea() {
+        const algo = document.getElementById("algoSelect").value;
+        const code = codeSnippets[algo];
+        const lines = code.split("\n");
+        const area = document.getElementById("codeArea");
+        area.innerHTML = lines
+          .map(
+            (line, idx) => `
+          <div id="L${idx + 1}" class="code-line">${line.replace(
+              / /g,
+              "&nbsp;"
+            )}</div>
+        `
+          )
+          .join("");
+        document.getElementById(
+          "codeFileName"
+        ).innerText = `${algo}_search.cpp`;
+        document.getElementById(
+          "visTitle"
+        ).innerText = `Mô phỏng ${algo.toUpperCase()}`;
+        document.getElementById("structLabel").innerText =
+          algo === "bfs" ? "Queue" : "Stack (Recursion)";
+        document.getElementById("structName").innerText =
+          algo === "bfs" ? "Hàng đợi (Queue)" : "Ngăn xếp (Stack)";
+      }
+
+      function regenerateGraph() {
+        n = parseInt(document.getElementById("inputN").value);
+        if (n > 15) n = 15;
+        document.getElementById("inputN").value = n;
+
+        nodes = [];
+        const radius = 180;
+        const centerX = 400;
+        const centerY = 250;
+
+        for (let i = 0; i < n; i++) {
+          const angle = (i / n) * 2 * Math.PI;
+          nodes.push({
+            id: i,
+            x: centerX + radius * Math.cos(angle),
+            y: centerY + radius * Math.sin(angle),
+          });
+        }
+
+        edges = [];
+        adj = {};
+        for (let i = 0; i < n; i++) adj[i] = [];
+
+        // Simple random graph: ensure connectivity
+        for (let i = 1; i < n; i++) {
+          const parent = Math.floor(Math.random() * i);
+          edges.push({ u: parent, v: i });
+          adj[parent].push(i);
+          adj[i].push(parent);
+        }
+
+        // Add some extra random edges
+        for (let i = 0; i < n * 0.5; i++) {
+          const u = Math.floor(Math.random() * n);
+          const v = Math.floor(Math.random() * n);
+          if (u !== v && !adj[u].includes(v)) {
+            edges.push({ u, v });
+            adj[u].push(v);
+            adj[v].push(u);
+          }
+        }
+
+        renderGraph();
+        updateAdjListUI();
+        resetSim();
+      }
+
+      function buildGraphFromManualInput() {
+        const inputText = document.getElementById("manualInput").value.trim();
+        if (!inputText) {
+          alert("Vui lòng nhập dữ liệu đồ thị!");
+          return;
+        }
+
+        const lines = inputText.split("\n").filter((l) => l.trim());
+        if (lines.length < 1) return;
+
+        const firstLine = lines[0].trim().split(/\s+/);
+        if (firstLine.length < 2) {
+          alert("Định dạng sai! Cần nhập 'n m' ở dòng đầu tiên.");
+          return;
+        }
+
+        const newN = parseInt(firstLine[0]);
+        const m = parseInt(firstLine[1]);
+
+        if (isNaN(newN) || newN <= 0) {
+          alert("Số lượng đỉnh không hợp lệ!");
+          return;
+        }
+
+        n = newN;
+        document.getElementById("inputN").value = n;
+        document.getElementById("startNode").max = n - 1;
+
+        let edgeCoords = [];
+        let minVal = Infinity;
+        let maxVal = -1;
+
+        for (let i = 1; i < lines.length && edgeCoords.length < m; i++) {
+          const parts = lines[i].trim().split(/\s+/);
+          if (parts.length >= 2) {
+            const u = parseInt(parts[0]);
+            const v = parseInt(parts[1]);
+            if (!isNaN(u) && !isNaN(v)) {
+              edgeCoords.push({ u, v });
+              minVal = Math.min(minVal, u, v);
+              maxVal = Math.max(maxVal, u, v);
+            }
+          }
+        }
+
+        // Tự động nhận diện 1-based indexing
+        let offset = 0;
+        if (minVal === 1 && maxVal === n) {
+          offset = -1;
+          console.log("Detecting 1-based indexing, adjusting to 0-based.");
+        }
+
+        nodes = [];
+        const radius = 180;
+        const centerX = 400;
+        const centerY = 250;
+
+        for (let i = 0; i < n; i++) {
+          const angle = (i / n) * 2 * Math.PI;
+          nodes.push({
+            id: i,
+            x: centerX + radius * Math.cos(angle),
+            y: centerY + radius * Math.sin(angle),
+          });
+        }
+
+        edges = [];
+        adj = {};
+        for (let i = 0; i < n; i++) adj[i] = [];
+
+        edgeCoords.forEach((coord) => {
+          let u = coord.u + offset;
+          let v = coord.v + offset;
+
+          if (u >= 0 && u < n && v >= 0 && v < n) {
+            if (!adj[u].includes(v)) {
+              edges.push({ u, v });
+              adj[u].push(v);
+              adj[v].push(u);
+            }
+          }
+        });
+
+        renderGraph();
+        updateAdjListUI();
+        resetSim();
+      }
+
+      function renderGraph() {
+        const edgesGroup = document.getElementById("edgesGroup");
+        const nodesGroup = document.getElementById("nodesGroup");
+        edgesGroup.innerHTML = "";
+        nodesGroup.innerHTML = "";
+
+        edges.forEach((edge, idx) => {
+          const u = nodes[edge.u];
+          const v = nodes[edge.v];
+          edgesGroup.innerHTML += `
+            <line id="edge-${edge.u}-${edge.v}" x1="${u.x}" y1="${u.y}" x2="${v.x}" y2="${v.y}" class="edge" stroke-width="2" />
+          `;
+        });
+
+        nodes.forEach((node) => {
+          nodesGroup.innerHTML += `
+            <g id="node-group-${node.id}" class="node" onclick="setStartNode(${node.id})">
+              <circle id="node-${node.id}" cx="${node.x}" cy="${node.y}" r="22" fill="#1e293b" stroke="#475569" stroke-width="2" />
+              <text x="${node.x}" y="${node.y}" dy="5" text-anchor="middle" fill="#f8fafc" font-size="14" font-weight="bold">${node.id}</text>
+            </g>
+          `;
+        });
+      }
+
+      function setStartNode(id) {
+        document.getElementById("startNode").value = id;
+        resetSim();
+      }
+
+      function updateAdjListUI() {
+        const container = document.getElementById("adjListUI");
+        container.innerHTML = "";
+        for (let i = 0; i < n; i++) {
+          container.innerHTML += `
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 flex items-center justify-center bg-slate-800 rounded text-brand-400 font-bold border border-white/5">${i}</span>
+              <span class="text-slate-500">: [${adj[i]
+                .sort((a, b) => a - b)
+                .join(", ")}]</span>
+            </div>
+          `;
+        }
+      }
+
+      function generateSteps() {
+        const algo = document.getElementById("algoSelect").value;
+        const start = parseInt(document.getElementById("startNode").value) || 0;
+        steps = [];
+
+        if (algo === "bfs") generateBFSSteps(start);
+        else generateDFSSteps(start);
+      }
+
+      function generateBFSSteps(start) {
+        let visited = new Array(n).fill(false);
+        let queue = [start];
+        visited[start] = true;
+
+        steps.push({
+          current: -1,
+          visited: [...visited],
+          queue: [],
+          edge: null,
+          L: 1,
+          msg: "Bắt đầu BFS. Khởi tạo hàng đợi rỗng.",
+        });
+
+        steps.push({
+          current: -1,
+          visited: [...visited],
+          queue: [start],
+          edge: null,
+          L: 3,
+          msg: `Đưa đỉnh ${start} vào hàng đợi và đánh dấu đã thăm.`,
+        });
+
+        while (queue.length > 0) {
+          let u = queue.shift();
+          steps.push({
+            current: u,
+            visited: [...visited],
+            queue: [...queue],
+            edge: null,
+            L: 6,
+            msg: `Lấy đỉnh ${u} ra khỏi hàng đợi để duyệt các đỉnh kề.`,
+          });
+
+          for (let v of adj[u].sort((a, b) => a - b)) {
+            steps.push({
+              current: u,
+              visited: [...visited],
+              queue: [...queue],
+              edge: { u, v },
+              L: 8,
+              msg: `Xét đỉnh kề ${v} của đỉnh ${u}.`,
+            });
+
+            if (!visited[v]) {
+              visited[v] = true;
+              queue.push(v);
+              steps.push({
+                current: u,
+                visited: [...visited],
+                queue: [...queue],
+                edge: { u, v },
+                L: 10,
+                msg: `Đỉnh ${v} chưa duyệt. Đánh dấu đã thăm và thêm vào hàng đợi.`,
+              });
+            } else {
+              steps.push({
+                current: u,
+                visited: [...visited],
+                queue: [...queue],
+                edge: { u, v },
+                L: 8,
+                msg: `Đỉnh ${v} đã được thăm, bỏ qua.`,
+              });
+            }
+          }
+        }
+
+        steps.push({
+          current: -1,
+          visited: [...visited],
+          queue: [],
+          isFinal: true,
+          L: 0,
+          msg: "Hoàn thành duyệt BFS!",
+        });
+      }
+
+      function generateDFSSteps(start) {
+        let visited = new Array(n).fill(false);
+        let stack = [];
+
+        function dfs(u, p = null) {
+          visited[u] = true;
+          stack.push(u);
+
+          steps.push({
+            current: u,
+            visited: [...visited],
+            stack: [...stack],
+            edge: p !== null ? { u: p, v: u } : null,
+            L: 2,
+            msg: `Duyệt đệ quy tới đỉnh ${u}, đánh dấu đã thăm.`,
+          });
+
+          for (let v of adj[u].sort((a, b) => a - b)) {
+            steps.push({
+              current: u,
+              visited: [...visited],
+              stack: [...stack],
+              edge: { u, v },
+              L: 3,
+              msg: `Xét đỉnh kề ${v} của đỉnh ${u}.`,
+            });
+
+            if (!visited[v]) {
+              dfs(v, u);
+              steps.push({
+                current: u,
+                visited: [...visited],
+                stack: [...stack],
+                edge: null,
+                L: 3,
+                msg: `Quay lại đỉnh ${u} từ đỉnh ${v}.`,
+              });
+            } else {
+              steps.push({
+                current: u,
+                visited: [...visited],
+                stack: [...stack],
+                edge: { u, v },
+                L: 4,
+                msg: `Đỉnh ${v} đã thăm, bỏ qua.`,
+              });
+            }
+          }
+          stack.pop();
+        }
+
+        steps.push({
+          current: -1,
+          visited: [...visited],
+          stack: [],
+          edge: null,
+          L: 1,
+          msg: "Bắt đầu DFS.",
+        });
+
+        dfs(start);
+
+        steps.push({
+          current: -1,
+          visited: [...visited],
+          stack: [],
+          isFinal: true,
+          L: 0,
+          msg: "Hoàn thành duyệt DFS!",
+        });
+      }
+
+      function render() {
+        const step = steps[currentStep];
+        const algo = document.getElementById("algoSelect").value;
+
+        // Reset all
+        nodes.forEach((node) => {
+          const circle = document.getElementById(`node-${node.id}`);
+          circle.classList.remove(
+            "node-current",
+            "node-visited",
+            "node-queued"
+          );
+          if (step.visited[node.id]) circle.classList.add("node-visited");
+          if (node.id === step.current) circle.classList.add("node-current");
+
+          const structItems = algo === "bfs" ? step.queue : step.stack;
+          if (structItems && structItems.includes(node.id)) {
+            if (node.id !== step.current) circle.classList.add("node-queued");
+          }
+        });
+
+        const allEdges = document.querySelectorAll(".edge");
+        allEdges.forEach((e) => e.classList.remove("edge-active"));
+        if (step.edge) {
+          const e1 = document.getElementById(
+            `edge-${step.edge.u}-${step.edge.v}`
+          );
+          const e2 = document.getElementById(
+            `edge-${step.edge.v}-${step.edge.u}`
+          );
+          if (e1) e1.classList.add("edge-active");
+          if (e2) e2.classList.add("edge-active");
+        }
+
+        // Update Stack/Queue UI
+        const structContainer = document.getElementById("structureContainer");
+        structContainer.innerHTML = "";
+        const structItems = algo === "bfs" ? step.queue : step.stack || [];
+
+        structItems.forEach((val) => {
+          structContainer.innerHTML += `
+            <div class="w-10 h-10 bg-brand-500 rounded-lg flex items-center justify-center font-bold text-white shadow-lg animate-bounce-subtle">
+              ${val}
+            </div>
+          `;
+        });
+
+        // Code highlight
+        document
+          .querySelectorAll(".code-line")
+          .forEach((el) => el.classList.remove("active"));
+        if (step.L > 0) {
+          document.getElementById(`L${step.L}`)?.classList.add("active");
+        }
+
+        // Explanation
+        const explainEl = document.getElementById("explanation");
+        explainEl.innerText = step.msg;
+
+        if (step.isFinal) {
+          confetti({
+            particleCount: 150,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ["#0ea5e9", "#10b981", "#ffffff"],
+          });
+        }
+
+        document.getElementById("btnPrev").disabled = currentStep <= 0;
+        document.getElementById("btnNext").disabled =
+          currentStep >= steps.length - 1;
+      }
+
+      function nextStep() {
+        if (currentStep < steps.length - 1) {
+          currentStep++;
+          render();
+        } else {
+          isAuto = false;
+          updateAutoBtn();
+        }
+      }
+
+      function prevStep() {
+        if (currentStep > 0) {
+          currentStep--;
+          render();
+        }
+      }
+
+      function toggleAuto() {
+        isAuto = !isAuto;
+        updateAutoBtn();
+        if (isAuto) autoRun();
+      }
+
+      function updateAutoBtn() {
+        const btn = document.getElementById("btnPlay");
+        const mobileBtn = document.getElementById("mobilePlay");
+        if (isAuto) {
+          btn.classList.add("paused");
+          mobileBtn.innerHTML = '<i class="fas fa-pause"></i>';
+        } else {
+          btn.classList.remove("paused");
+          mobileBtn.innerHTML = '<i class="fas fa-play"></i>';
+        }
+      }
+
+      function autoRun() {
+        if (!isAuto) return;
+        nextStep();
+        if (currentStep < steps.length - 1) {
+          setTimeout(autoRun, 800);
+        } else {
+          isAuto = false;
+          updateAutoBtn();
+        }
+      }
+
+      function resetSim() {
+        isAuto = false;
+        updateAutoBtn();
+        updateCodeArea();
+        generateSteps();
+        currentStep = 0;
+        render();
+      }
+
+      window.onload = () => {
+        regenerateGraph();
+      };
+    </script>
+  </body>
+</html>
