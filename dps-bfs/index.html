@@ -49,11 +49,16 @@
             animation: {
               "pulse-slow": "pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite",
               float: "float 3s ease-in-out infinite",
+              "bounce-subtle": "bounce-subtle 0.6s ease-out",
             },
             keyframes: {
               float: {
                 "0%, 100%": { transform: "translateY(0)" },
                 "50%": { transform: "translateY(-10px)" },
+              },
+              "bounce-subtle": {
+                "0%, 100%": { transform: "translateY(0)" },
+                "50%": { transform: "translateY(-5px)" },
               },
             },
           },
@@ -788,7 +793,7 @@
             msg: `Lấy đỉnh ${u} ra khỏi hàng đợi để duyệt các đỉnh kề.`,
           });
 
-          for (let v of adj[u].sort((a, b) => a - b)) {
+          for (let v of (adj[u] || []).slice().sort((a, b) => a - b)) {
             steps.push({
               current: u,
               visited: [...visited],
@@ -836,61 +841,99 @@
         let visited = new Array(n).fill(false);
         let stack = [];
 
-        function dfs(u, p = null) {
-          visited[u] = true;
-          stack.push(u);
-
-          steps.push({
-            current: u,
-            visited: [...visited],
-            stack: [...stack],
-            edge: p !== null ? { u: p, v: u } : null,
-            L: 2,
-            msg: `Duyệt đệ quy tới đỉnh ${u}, đánh dấu đã thăm.`,
-          });
-
-          for (let v of adj[u].sort((a, b) => a - b)) {
-            steps.push({
-              current: u,
-              visited: [...visited],
-              stack: [...stack],
-              edge: { u, v },
-              L: 3,
-              msg: `Xét đỉnh kề ${v} của đỉnh ${u}.`,
-            });
-
-            if (!visited[v]) {
-              dfs(v, u);
-              steps.push({
-                current: u,
-                visited: [...visited],
-                stack: [...stack],
-                edge: null,
-                L: 3,
-                msg: `Quay lại đỉnh ${u} từ đỉnh ${v}.`,
-              });
-            } else {
-              steps.push({
-                current: u,
-                visited: [...visited],
-                stack: [...stack],
-                edge: { u, v },
-                L: 4,
-                msg: `Đỉnh ${v} đã thăm, bỏ qua.`,
-              });
-            }
-          }
-          stack.pop();
-        }
-
+        // Initial state similar to BFS
         steps.push({
           current: -1,
           visited: [...visited],
           stack: [],
           edge: null,
           L: 1,
-          msg: "Bắt đầu DFS.",
+          msg: "Bắt đầu thuật toán DFS. Khởi tạo ngăn xếp rỗng và mảng đánh dấu.",
         });
+
+        function dfs(u, p = null) {
+          visited[u] = true;
+          stack.push(u);
+
+          // Step: Entering node
+          steps.push({
+            current: u,
+            visited: [...visited],
+            stack: [...stack],
+            edge: p !== null ? { u: p, v: u } : null,
+            L: 2,
+            msg: `Duyệt đỉnh ${u}, đánh dấu đã thăm và đẩy vào ngăn xếp.`,
+          });
+
+          const neighbors = (adj[u] || []).slice().sort((a, b) => a - b);
+          for (let v of neighbors) {
+            // Step: Look at edge
+            steps.push({
+              current: u,
+              visited: [...visited],
+              stack: [...stack],
+              edge: { u, v },
+              L: 3,
+              msg: `Từ đỉnh ${u}, xét đỉnh kề ${v}.`,
+            });
+
+            // Step: Check visited
+            steps.push({
+              current: u,
+              visited: [...visited],
+              stack: [...stack],
+              edge: { u, v },
+              L: 4,
+              msg: `Kiểm tra: Đỉnh ${v} đã được thăm chưa?`,
+            });
+
+            if (!visited[v]) {
+              // Step: Recurse
+              steps.push({
+                current: u,
+                visited: [...visited],
+                stack: [...stack],
+                edge: { u, v },
+                L: 5,
+                msg: `Đỉnh ${v} chưa duyệt. Gọi đệ quy dfs(${v}).`,
+              });
+
+              dfs(v, u);
+
+              // Step: After return
+              steps.push({
+                current: u,
+                visited: [...visited],
+                stack: [...stack],
+                edge: null, // Clear edge on backtrack
+                L: 3,
+                msg: `Hoàn thành duyệt nhánh của đỉnh ${v}, quay lại đỉnh ${u}.`,
+              });
+            } else {
+              // Step: Already visited
+              steps.push({
+                current: u,
+                visited: [...visited],
+                stack: [...stack],
+                edge: { u, v },
+                L: 3,
+                msg: `Đỉnh ${v} đã được thăm trước đó, bỏ qua.`,
+              });
+            }
+          }
+
+          // Finish node
+          steps.push({
+            current: u,
+            visited: [...visited],
+            stack: [...stack],
+            edge: null,
+            L: 7,
+            msg: `Đã duyệt xong các đỉnh kề của ${u}. Kết thúc hàm dfs(${u}) và lấy ${u} ra khỏi ngăn xếp.`,
+          });
+
+          stack.pop();
+        }
 
         dfs(start);
 
@@ -900,7 +943,7 @@
           stack: [],
           isFinal: true,
           L: 0,
-          msg: "Hoàn thành duyệt DFS!",
+          msg: "Hoàn thành quá trình duyệt DFS!",
         });
       }
 
