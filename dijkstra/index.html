@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <meta
+      name="description"
+      content="Trực quan hoá thuật toán Dijkstra - Tìm đường đi ngắn nhất trên đồ thị có trọng số."
+    />
+    <base href="/hsg-tin-hoc/" />
+    <title>Dijkstra Visualizer - Tìm đường đi ngắn nhất</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ["Outfit", "sans-serif"],
+              mono: ["Fira Code", "monospace"],
+            },
+            colors: {
+              brand: {
+                50: "#f0f9ff",
+                100: "#e0f2fe",
+                200: "#bae6fd",
+                300: "#7dd3fc",
+                400: "#38bdf8",
+                500: "#0ea5e9",
+                600: "#0284c7",
+                700: "#0369a1",
+                800: "#075985",
+                900: "#0c4a6e",
+                950: "#082f49",
+              },
+            },
+            animation: {
+              "pulse-slow": "pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+              float: "float 3s ease-in-out infinite",
+              "bounce-subtle": "bounce-subtle 0.6s ease-out",
+            },
+            keyframes: {
+              float: {
+                "0%, 100%": { transform: "translateY(0)" },
+                "50%": { transform: "translateY(-10px)" },
+              },
+              "bounce-subtle": {
+                "0%, 100%": { transform: "translateY(0)" },
+                "50%": { transform: "translateY(-5px)" },
+              },
+            },
+          },
+        },
+      };
+    </script>
+
+    <style type="text/tailwindcss">
+      @layer components {
+        .glass-card {
+          @apply bg-white/80 backdrop-blur-xl border border-white/20 shadow-xl;
+        }
+        .btn-primary {
+          @apply bg-brand-600 hover:bg-brand-700 text-white px-6 py-2.5 rounded-2xl font-semibold transition-all duration-300 shadow-lg shadow-brand-900/20 hover:shadow-brand-900/30 active:scale-95 disabled:opacity-50 disabled:pointer-events-none;
+        }
+        .btn-secondary {
+          @apply bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl font-medium transition-all duration-300 active:scale-95 disabled:opacity-50;
+        }
+        .code-line {
+          @apply px-4 py-1 border-l-2 border-transparent transition-all duration-200;
+        }
+        .code-line.active {
+          @apply bg-brand-500/10 border-brand-500 text-brand-400 font-medium;
+        }
+        .node {
+          @apply transition-all duration-500 cursor-pointer;
+        }
+        .edge {
+          @apply transition-all duration-500 stroke-slate-700;
+        }
+        .dist-label {
+          @apply text-[10px] fill-amber-400 font-bold;
+        }
+      }
+
+      .scroll-custom::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      .scroll-custom::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .scroll-custom::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 10px;
+      }
+      .scroll-custom::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+      }
+
+      body {
+        background-image: radial-gradient(
+            at 0% 0%,
+            hsla(200, 39%, 10%, 1) 0,
+            transparent 50%
+          ),
+          radial-gradient(at 50% 0%, hsla(215, 39%, 20%, 1) 0, transparent 50%),
+          radial-gradient(at 100% 0%, hsla(230, 49%, 15%, 1) 0, transparent 50%);
+        background-attachment: fixed;
+      }
+
+      .node-visited {
+        fill: #10b981 !important;
+        filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.6));
+      }
+      .node-current {
+        fill: #0ea5e9 !important;
+        stroke: #fff !important;
+        stroke-width: 3px !important;
+        filter: drop-shadow(0 0 12px rgba(14, 165, 233, 0.8));
+      }
+      .node-queued {
+        fill: #f59e0b !important;
+        filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.6));
+      }
+      .edge-active {
+        stroke: #0ea5e9 !important;
+        stroke-width: 3px !important;
+      }
+      .edge-path {
+        stroke: #10b981 !important;
+        stroke-width: 4px !important;
+      }
+    </style>
+  </head>
+  <body
+    class="bg-slate-950 min-h-screen text-slate-100 selection:bg-brand-500/30"
+  >
+    <div class="fixed inset-0 bg-slate-50/5 backdrop-blur-3xl -z-10"></div>
+
+    <header class="sticky top-0 z-50 px-4 py-3 md:px-8 md:py-4">
+      <nav
+        class="max-w-[1600px] mx-auto glass-card rounded-3xl flex items-center justify-between px-6 py-2 border-white/10 bg-white/5"
+      >
+        <div class="flex items-center gap-4">
+          <div
+            class="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-brand-500 to-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-md shadow-brand-500/10 animate-float"
+          >
+            <i class="fas fa-route text-lg md:text-xl"></i>
+          </div>
+          <div>
+            <h1
+              class="text-lg md:text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400"
+            >
+              Dijkstra Visualizer
+            </h1>
+            <p
+              class="text-[10px] md:text-xs text-slate-500 font-medium uppercase tracking-widest hidden md:block"
+            >
+              Shortest Path Finder
+            </p>
+          </div>
+        </div>
+
+        <div class="hidden lg:flex items-center gap-4">
+          <div
+            class="flex items-center gap-1 bg-slate-900/50 p-1.5 rounded-2xl border border-white/5"
+          >
+            <button
+              id="btnPrev"
+              onclick="prevStep()"
+              class="p-2.5 hover:bg-white/10 rounded-xl transition-all disabled:opacity-20 text-slate-400"
+            >
+              <i class="fas fa-arrow-left"></i>
+            </button>
+            <button
+              id="btnPlay"
+              onclick="toggleAuto()"
+              class="btn-primary flex items-center gap-2 min-w-[140px] justify-center group"
+            >
+              <i class="fas fa-play group-[.paused]:hidden"></i>
+              <span class="group-[.paused]:hidden">Chạy tự động</span>
+              <i class="fas fa-pause hidden group-[.paused]:block"></i>
+              <span class="hidden group-[.paused]:block">Tạm dừng</span>
+            </button>
+            <button
+              id="btnNext"
+              onclick="nextStep()"
+              class="p-2.5 hover:bg-white/10 rounded-xl transition-all disabled:opacity-20 text-slate-400"
+            >
+              <i class="fas fa-arrow-right"></i>
+            </button>
+          </div>
+          <button
+            onclick="resetSim()"
+            class="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-all"
+            title="Làm mới"
+          >
+            <i class="fas fa-rotate"></i>
+          </button>
+        </div>
+
+        <div class="lg:hidden flex items-center gap-2">
+          <button
+            onclick="resetSim()"
+            class="p-2 text-slate-400"
+          >
+            <i class="fas fa-rotate"></i>
+          </button>
+          <button
+            id="mobileNext"
+            onclick="nextStep()"
+            class="p-3 bg-brand-600 rounded-xl text-white"
+          >
+            <i class="fas fa-step-forward"></i>
+          </button>
+        </div>
+      </nav>
+    </header>
+
+    <main class="p-4 md:p-6 max-w-[1600px] mx-auto">
+      <div class="grid grid-cols-12 gap-6">
+        <!-- Left Sidebar: Graph Config -->
+        <aside class="col-span-12 lg:col-span-3 space-y-6">
+          <section
+            class="glass-card rounded-[2rem] p-6 bg-white/5 border-white/5"
+          >
+            <div class="flex items-center gap-3 mb-6">
+              <span class="w-2 h-6 bg-brand-500 rounded-full"></span>
+              <h2
+                class="text-sm font-bold text-slate-400 uppercase tracking-widest"
+              >
+                Cấu hình
+              </h2>
+            </div>
+            <div class="space-y-5">
+              <div class="space-y-2">
+                <label class="text-xs font-semibold text-slate-500 px-1"
+                  >Số lượng đỉnh (N)</label
+                >
+                <input
+                  type="number"
+                  id="inputN"
+                  value="7"
+                  min="3"
+                  max="15"
+                  class="w-full bg-slate-900/50 border border-white/10 p-3.5 rounded-2xl text-sm transition-all focus:ring-2 focus:ring-brand-500 outline-none"
+                  onchange="regenerateGraph()"
+                />
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div class="space-y-2">
+                  <label class="text-xs font-semibold text-slate-500 px-1"
+                    >Đỉnh đầu</label
+                  >
+                  <input
+                    type="number"
+                    id="startNode"
+                    value="0"
+                    min="0"
+                    max="14"
+                    class="w-full bg-slate-900/50 border border-white/10 p-3.5 rounded-2xl text-sm outline-none"
+                    onchange="resetSim()"
+                  />
+                </div>
+                <div class="space-y-2">
+                  <label class="text-xs font-semibold text-slate-500 px-1"
+                    >Đỉnh cuối</label
+                  >
+                  <input
+                    type="number"
+                    id="endNode"
+                    value="4"
+                    min="0"
+                    max="14"
+                    class="w-full bg-slate-900/50 border border-white/10 p-3.5 rounded-2xl text-sm outline-none"
+                    onchange="resetSim()"
+                  />
+                </div>
+              </div>
+              <button
+                onclick="regenerateGraph()"
+                class="w-full btn-secondary flex items-center justify-center gap-2"
+              >
+                <i class="fas fa-random"></i> Đồ thị ngẫu nhiên
+              </button>
+
+              <div class="space-y-3 pt-4 border-t border-white/5">
+                <label class="text-xs font-semibold text-slate-500 px-1"
+                  >Nhập dữ liệu (n m \n u v w ...)</label
+                >
+                <textarea
+                  id="manualInput"
+                  rows="4"
+                  class="w-full bg-slate-900/50 border border-white/10 p-3 rounded-2xl text-[10px] font-mono outline-none focus:ring-2 focus:ring-brand-500 scroll-custom transition-all"
+                  placeholder="4 4
+0 1 5
+1 2 10
+2 3 3
+3 0 2"
+                ></textarea>
+                <button
+                  onclick="buildGraphFromManualInput()"
+                  class="w-full btn-primary !bg-emerald-600 hover:!bg-emerald-700 text-sm shadow-emerald-900/20"
+                >
+                  <i class="fas fa-hammer"></i> Xây dựng đồ thị
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <section
+            class="glass-card rounded-[2rem] p-6 bg-white/5 border-white/5"
+          >
+            <div class="flex items-center gap-3 mb-4">
+              <span class="w-2 h-6 bg-amber-500 rounded-full"></span>
+              <h2
+                class="text-sm font-bold text-slate-400 uppercase tracking-widest"
+              >
+                Danh sách kề
+              </h2>
+            </div>
+            <div
+              id="adjListUI"
+              class="text-xs font-mono space-y-2 max-h-[300px] overflow-y-auto scroll-custom pr-2"
+            >
+              <!-- Adj list items -->
+            </div>
+          </section>
+        </aside>
+
+        <!-- Center: Graph Visualization -->
+        <div class="col-span-12 lg:col-span-6 space-y-6">
+          <section
+            class="glass-card rounded-[2rem] p-6 md:p-8 bg-white/5 border-white/10 min-h-[500px] flex flex-col relative overflow-hidden"
+          >
+            <div class="flex justify-between items-center mb-4 z-10">
+              <h2
+                class="text-xl font-bold text-white"
+                id="visTitle"
+              >
+                Mô phỏng Dijkstra
+              </h2>
+              <div class="flex gap-4 text-[10px] md:text-xs">
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-brand-500"></span> Đang
+                  xét
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Đã
+                  xong
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-amber-500"></span> Trong
+                  PQ
+                </div>
+              </div>
+            </div>
+
+            <div
+              id="graphContainer"
+              class="flex-1 flex items-center justify-center p-4 border border-white/5 rounded-3xl bg-slate-950/30"
+            >
+              <svg
+                id="graphSvg"
+                viewBox="0 0 800 500"
+                class="w-full h-full max-h-[500px]"
+              >
+                <defs>
+                  <marker
+                    id="arrowhead"
+                    markerWidth="10"
+                    markerHeight="7"
+                    refX="25"
+                    refY="3.5"
+                    orient="auto"
+                  >
+                    <polygon
+                      points="0 0, 10 3.5, 0 7"
+                      fill="#475569"
+                    />
+                  </marker>
+                </defs>
+                <g id="edgesGroup"></g>
+                <g id="nodesGroup"></g>
+              </svg>
+            </div>
+          </section>
+
+          <!-- Explanation Card -->
+          <section
+            id="statusCard"
+            class="relative group overflow-hidden rounded-[2rem] p-8 transition-all duration-500 bg-gradient-to-br from-brand-900/80 to-slate-950 border border-brand-500/20 shadow-2xl shadow-brand-500/5"
+          >
+            <div
+              class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 mix-blend-overlay"
+            ></div>
+            <div
+              class="absolute -right-16 -bottom-16 w-64 h-64 bg-brand-500/10 rounded-full blur-[100px] group-hover:bg-brand-500/20 transition-all duration-700"
+            ></div>
+            <div
+              class="relative z-10 flex flex-col md:flex-row gap-6 items-start"
+            >
+              <div
+                class="w-12 h-12 rounded-2xl bg-brand-500/20 flex items-center justify-center text-brand-400 border border-brand-500/30 flex-shrink-0"
+              >
+                <i class="fas fa-lightbulb text-xl animate-pulse"></i>
+              </div>
+              <div class="space-y-3">
+                <p
+                  class="text-xs font-bold text-brand-400 uppercase tracking-widest"
+                >
+                  Trạng thái hiện tại
+                </p>
+                <p
+                  id="explanation"
+                  class="text-base md:text-xl font-medium leading-relaxed text-slate-100 italic"
+                >
+                  Nhấn "Tiếp theo" để bắt đầu tìm đường đi ngắn nhất.
+                </p>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- Right Side: Code & Structure Visualization -->
+        <aside class="col-span-12 lg:col-span-3 space-y-6">
+          <section
+            class="glass-card rounded-[2rem] bg-[#0f172a] border-white/5 overflow-hidden flex flex-col ring-1 ring-white/5 shadow-2xl"
+          >
+            <div
+              class="bg-slate-900/80 px-5 py-4 border-b border-white/5 flex items-center justify-between"
+            >
+              <span
+                class="text-[10px] font-bold text-slate-500 uppercase tracking-widest"
+                id="codeFileName"
+                >dijkstra.cpp</span
+              >
+              <span class="text-[9px] font-mono text-slate-500">C++</span>
+            </div>
+            <div
+              id="codeArea"
+              class="p-6 font-mono text-[11px] md:text-[12px] leading-6 flex-1 text-slate-400 overflow-hidden relative min-h-[350px]"
+            >
+              <!-- Code lines will be injected here -->
+            </div>
+          </section>
+
+          <section
+            class="glass-card rounded-[2rem] p-6 bg-white/5 border-white/5"
+          >
+            <div class="flex items-center gap-3 mb-4">
+              <span class="w-2 h-6 bg-purple-500 rounded-full"></span>
+              <h2
+                class="text-sm font-bold text-slate-400 uppercase tracking-widest"
+              >
+                Priority Queue
+              </h2>
+            </div>
+            <div
+              id="structureContainer"
+              class="flex flex-col gap-2 bg-slate-900/50 p-4 rounded-2xl min-h-[150px] items-center justify-start border border-white/5"
+            >
+              <!-- PQ items -->
+            </div>
+            <p
+              class="text-[10px] text-slate-500 text-center mt-3 uppercase tracking-wider font-bold"
+            >
+              Hàng đợi ưu tiên (Min-Heap)
+            </p>
+          </section>
+        </aside>
+      </div>
+    </main>
+
+    <!-- Mobile Controls Float -->
+    <div
+      class="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 p-2 bg-slate-900 border border-white/10 rounded-2xl shadow-2xl glass-card"
+    >
+      <button
+        onclick="prevStep()"
+        class="p-3 text-slate-400"
+      >
+        <i class="fas fa-arrow-left"></i>
+      </button>
+      <button
+        id="mobilePlay"
+        onclick="toggleAuto()"
+        class="px-6 py-3 bg-brand-600 rounded-xl text-white font-bold flex items-center gap-2"
+      >
+        <i class="fas fa-play"></i>
+      </button>
+      <button
+        onclick="nextStep()"
+        class="p-3 text-slate-400"
+      >
+        <i class="fas fa-arrow-right"></i>
+      </button>
+    </div>
+
+    <script>
+      let nodes = [];
+      let edges = [];
+      let adj = {};
+      let steps = [];
+      let currentStep = -1;
+      let isAuto = false;
+      let timer = null;
+      let n = 7;
+
+      const dijkstraCode = `void dijkstra(int s) {
+  fill(dist, dist + n, INF);
+  dist[s] = 0;
+  pq.push({0, s});
+  while (!pq.empty()) {
+    auto [d, u] = pq.top(); pq.pop();
+    if (d > dist[u]) continue;
+    for (auto [v, w] : adj[u]) {
+      if (dist[v] > dist[u] + w) {git 
+        dist[v] = dist[u] + w;
+        pq.push({dist[v], v});
+      }
+    }
+  }
+}`;
+
+      function updateCodeArea() {
+        const lines = dijkstraCode.split("\n");
+        const area = document.getElementById("codeArea");
+        area.innerHTML = lines
+          .map(
+            (line, idx) => `
+          <div id="L${idx + 1}" class="code-line">${line.replace(
+              / /g,
+              "&nbsp;"
+            )}</div>
+        `
+          )
+          .join("");
+      }
+
+      function regenerateGraph() {
+        n = parseInt(document.getElementById("inputN").value);
+        if (n > 15) n = 15;
+        document.getElementById("inputN").value = n;
+        document.getElementById("startNode").max = n - 1;
+        document.getElementById("endNode").max = n - 1;
+
+        nodes = [];
+        const radius = 180;
+        const centerX = 400;
+        const centerY = 250;
+
+        for (let i = 0; i < n; i++) {
+          const angle = (i / n) * 2 * Math.PI;
+          nodes.push({
+            id: i,
+            x: centerX + radius * Math.cos(angle),
+            y: centerY + radius * Math.sin(angle),
+          });
+        }
+
+        edges = [];
+        adj = {};
+        for (let i = 0; i < n; i++) adj[i] = [];
+
+        // Ensure connectivity
+        for (let i = 1; i < n; i++) {
+          const parent = Math.floor(Math.random() * i);
+          const weight = Math.floor(Math.random() * 9) + 1;
+          edges.push({ u: parent, v: i, w: weight });
+          adj[parent].push({ v: i, w: weight });
+          adj[i].push({ v: parent, w: weight });
+        }
+
+        // Add extra edges
+        for (let i = 0; i < n; i++) {
+          const u = Math.floor(Math.random() * n);
+          const v = Math.floor(Math.random() * n);
+          if (u !== v && !adj[u].find((e) => e.v === v)) {
+            const weight = Math.floor(Math.random() * 9) + 1;
+            edges.push({ u, v, w: weight });
+            adj[u].push({ v, w: weight });
+            adj[v].push({ v: u, w: weight });
+          }
+        }
+
+        renderGraph();
+        updateAdjListUI();
+        const inputText =
+          `${n} ${edges.length}\n` +
+          edges.map((e) => `${e.u} ${e.v} ${e.w}`).join("\n");
+        document.getElementById("manualInput").value = inputText;
+        resetSim();
+      }
+
+      function buildGraphFromManualInput() {
+        const inputText = document.getElementById("manualInput").value.trim();
+        if (!inputText) return;
+
+        const lines = inputText.split("\n").filter((l) => l.trim());
+        const firstLine = lines[0].trim().split(/\s+/);
+        if (firstLine.length < 2) return;
+
+        n = parseInt(firstLine[0]);
+        const m = parseInt(firstLine[1]);
+        document.getElementById("inputN").value = n;
+
+        nodes = [];
+        const radius = 180;
+        const centerX = 400;
+        const centerY = 250;
+        for (let i = 0; i < n; i++) {
+          const angle = (i / n) * 2 * Math.PI;
+          nodes.push({
+            id: i,
+            x: centerX + radius * Math.cos(angle),
+            y: centerY + radius * Math.sin(angle),
+          });
+        }
+
+        edges = [];
+        adj = {};
+        for (let i = 0; i < n; i++) adj[i] = [];
+
+        for (let i = 1; i <= m && i < lines.length; i++) {
+          const parts = lines[i].trim().split(/\s+/);
+          if (parts.length >= 3) {
+            const u = parseInt(parts[0]);
+            const v = parseInt(parts[1]);
+            const w = parseInt(parts[2]);
+            if (u < n && v < n) {
+              edges.push({ u, v, w });
+              adj[u].push({ v, w });
+              adj[v].push({ v: u, w: w });
+            }
+          }
+        }
+        renderGraph();
+        updateAdjListUI();
+        resetSim();
+      }
+
+      function renderGraph() {
+        const edgesGroup = document.getElementById("edgesGroup");
+        const nodesGroup = document.getElementById("nodesGroup");
+        edgesGroup.innerHTML = "";
+        nodesGroup.innerHTML = "";
+
+        edges.forEach((edge) => {
+          const u = nodes[edge.u];
+          const v = nodes[edge.v];
+          const midX = (u.x + v.x) / 2;
+          const midY = (u.y + v.y) / 2;
+          edgesGroup.innerHTML += `
+            <g id="edge-group-${edge.u}-${edge.v}">
+              <line id="edge-${edge.u}-${edge.v}" x1="${u.x}" y1="${u.y}" x2="${
+            v.x
+          }" y2="${v.y}" class="edge" stroke-width="2" />
+              <rect x="${midX - 10}" y="${
+            midY - 10
+          }" width="20" height="20" rx="4" fill="#0f172a" stroke="#1e293b" />
+              <text x="${midX}" y="${midY}" dy="5" text-anchor="middle" fill="#94a3b8" font-size="10" font-weight="bold">${
+            edge.w
+          }</text>
+            </g>
+          `;
+        });
+
+        nodes.forEach((node) => {
+          nodesGroup.innerHTML += `
+            <g id="node-group-${node.id}" class="node" onclick="setStartNode(${
+            node.id
+          })">
+              <circle id="node-${node.id}" cx="${node.x}" cy="${
+            node.y
+          }" r="22" fill="#1e293b" stroke="#475569" stroke-width="2" />
+              <text x="${node.x}" y="${
+            node.y
+          }" dy="2" text-anchor="middle" fill="#f8fafc" font-size="14" font-weight="bold">${
+            node.id
+          }</text>
+              <text id="dist-${node.id}" x="${node.x}" y="${
+            node.y - 30
+          }" class="dist-label" text-anchor="middle">∞</text>
+            </g>
+          `;
+        });
+      }
+
+      function setStartNode(id) {
+        document.getElementById("startNode").value = id;
+        resetSim();
+      }
+
+      function updateAdjListUI() {
+        const container = document.getElementById("adjListUI");
+        container.innerHTML = "";
+        for (let i = 0; i < n; i++) {
+          container.innerHTML += `
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 flex items-center justify-center bg-slate-800 rounded text-brand-400 font-bold border border-white/5">${i}</span>
+              <span class="text-slate-500">: [${adj[i]
+                .map((e) => `{${e.v}, w:${e.w}}`)
+                .join(", ")}]</span>
+            </div>
+          `;
+        }
+      }
+
+      function generateSteps() {
+        const start = parseInt(document.getElementById("startNode").value) || 0;
+        const end = parseInt(document.getElementById("endNode").value);
+        steps = [];
+
+        let dist = new Array(n).fill(Infinity);
+        let parent = new Array(n).fill(-1);
+        let finalized = new Array(n).fill(false);
+        let pq = [{ d: 0, u: start }];
+
+        steps.push({
+          current: -1,
+          u: -1,
+          v: -1,
+          dist: [...dist],
+          pq: [],
+          finalized: [...finalized],
+          L: 2,
+          msg: "Khởi tạo khoảng cách các đỉnh bằng vô cùng.",
+        });
+
+        dist[start] = 0;
+        steps.push({
+          current: start,
+          u: start,
+          v: -1,
+          dist: [...dist],
+          pq: [{ d: 0, u: start }],
+          finalized: [...finalized],
+          L: 4,
+          msg: `Đặt khoảng cách đỉnh bắt đầu ${start} là 0 và đưa vào PQ.`,
+        });
+
+        while (pq.length > 0) {
+          pq.sort((a, b) => a.d - b.d);
+          let { d, u } = pq.shift();
+
+          steps.push({
+            current: u,
+            u: u,
+            v: -1,
+            dist: [...dist],
+            pq: [...pq],
+            finalized: [...finalized],
+            L: 6,
+            msg: `Lấy đỉnh ${u} có khoảng cách nhỏ nhất (${d}) từ PQ.`,
+          });
+
+          if (d > dist[u]) {
+            steps.push({
+              current: u,
+              u: u,
+              v: -1,
+              dist: [...dist],
+              pq: [...pq],
+              finalized: [...finalized],
+              L: 7,
+              msg: `Khoảng cách ${d} lớn hơn khoảng cách hiện tại ${dist[u]}, bỏ qua.`,
+            });
+            continue;
+          }
+
+          finalized[u] = true;
+
+          for (let edge of adj[u] || []) {
+            let { v, w } = edge;
+            steps.push({
+              current: u,
+              u: u,
+              v: v,
+              dist: [...dist],
+              pq: [...pq],
+              finalized: [...finalized],
+              L: 8,
+              msg: `Xét cạnh (${u}, ${v}) với trọng số ${w}.`,
+            });
+
+            if (dist[v] > dist[u] + w) {
+              dist[v] = dist[u] + w;
+              parent[v] = u;
+              pq.push({ d: dist[v], u: v });
+              pq.sort((a, b) => a.d - b.d);
+              steps.push({
+                current: u,
+                u: u,
+                v: v,
+                dist: [...dist],
+                pq: [...pq],
+                finalized: [...finalized],
+                L: 10,
+                msg: `Cập nhật dist[${v}] = ${dist[v]} và đưa vào PQ.`,
+              });
+            } else {
+              steps.push({
+                current: u,
+                u: u,
+                v: v,
+                dist: [...dist],
+                pq: [...pq],
+                finalized: [...finalized],
+                L: 8,
+                msg: `Không cập nhật được dist[${v}] vì ${dist[u]} + ${w} >= ${dist[v]}.`,
+              });
+            }
+          }
+        }
+
+        // Final step: highlight path if end node reached
+        if (dist[end] !== Infinity) {
+          let path = [];
+          let curr = end;
+          while (curr !== -1) {
+            path.push(curr);
+            curr = parent[curr];
+          }
+          steps.push({
+            current: -1,
+            u: -1,
+            v: -1,
+            dist: [...dist],
+            pq: [],
+            finalized: [...finalized],
+            path: path,
+            L: 1,
+            msg:
+              `Tìm thấy đường đi ngắn nhất từ ${start} đến ${end}: ` +
+              path.reverse().join(" → ") +
+              ` (Độ dài: ${dist[end]})`,
+          });
+        } else {
+          steps.push({
+            current: -1,
+            u: -1,
+            v: -1,
+            dist: [...dist],
+            pq: [],
+            finalized: [...finalized],
+            L: 1,
+            msg: `Không có đường đi từ ${start} đến ${end}.`,
+          });
+        }
+      }
+
+      function applyStep(idx) {
+        if (idx < 0 || idx >= steps.length) return;
+        const step = steps[idx];
+
+        // Reset all
+        nodes.forEach((n) => {
+          const el = document.getElementById(`node-${n.id}`);
+          el.classList.remove("node-visited", "node-current", "node-queued");
+          document.getElementById(`dist-${n.id}`).innerText =
+            step.dist[n.id] === Infinity ? "∞" : step.dist[n.id];
+          document
+            .getElementById(`dist-${n.id}`)
+            .classList.remove("text-emerald-400", "text-amber-400");
+          if (step.finalized[n.id]) el.classList.add("node-visited");
+        });
+
+        edges.forEach((e) => {
+          const el =
+            document.getElementById(`edge-${e.u}-${e.v}`) ||
+            document.getElementById(`edge-${e.v}-${e.u}`);
+          if (el) {
+            el.classList.remove("edge-active", "edge-path");
+          }
+        });
+
+        // Current Node
+        if (step.u !== -1) {
+          document
+            .getElementById(`node-${step.u}`)
+            .classList.add("node-current");
+        }
+
+        // Target Node
+        if (step.v !== -1) {
+          document
+            .getElementById(`node-${step.v}`)
+            .classList.add("node-queued");
+          const edgeEl =
+            document.getElementById(`edge-${step.u}-${step.v}`) ||
+            document.getElementById(`edge-${step.v}-${step.u}`);
+          if (edgeEl) edgeEl.classList.add("edge-active");
+        }
+
+        // Path highlight
+        if (step.path) {
+          for (let i = 0; i < step.path.length - 1; i++) {
+            const u = step.path[i];
+            const v = step.path[i + 1];
+            const edgeEl =
+              document.getElementById(`edge-${u}-${v}`) ||
+              document.getElementById(`edge-${v}-${u}`);
+            if (edgeEl) edgeEl.classList.add("edge-path");
+          }
+        }
+
+        // PQ UI
+        const pqContainer = document.getElementById("structureContainer");
+        pqContainer.innerHTML = step.pq
+          .map(
+            (item) => `
+          <div class="flex items-center gap-3 bg-slate-800/80 px-4 py-2 rounded-xl border border-white/5 w-full animate-bounce-subtle">
+            <span class="text-xs font-bold text-amber-500">{d: ${item.d}, u: ${item.u}}</span>
+          </div>
+        `
+          )
+          .join("");
+
+        // Explanation
+        document.getElementById("explanation").innerText = step.msg;
+
+        // Code Highlight
+        document
+          .querySelectorAll(".code-line")
+          .forEach((l) => l.classList.remove("active"));
+        if (step.L) {
+          document.getElementById(`L${step.L}`)?.classList.add("active");
+        }
+
+        // Buttons
+        document.getElementById("btnPrev").disabled = idx <= 0;
+        document.getElementById("btnNext").disabled = idx >= steps.length - 1;
+      }
+
+      function nextStep() {
+        if (currentStep < steps.length - 1) {
+          currentStep++;
+          applyStep(currentStep);
+        } else {
+          stopAuto();
+          confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ["#0ea5e9", "#10b981", "#f59e0b"],
+          });
+        }
+      }
+
+      function prevStep() {
+        if (currentStep > 0) {
+          currentStep--;
+          applyStep(currentStep);
+        }
+      }
+
+      function toggleAuto() {
+        if (isAuto) stopAuto();
+        else startAuto();
+      }
+
+      function startAuto() {
+        isAuto = true;
+        document.getElementById("btnPlay").classList.add("paused");
+        document.getElementById("mobilePlay").innerHTML =
+          '<i class="fas fa-pause"></i>';
+        timer = setInterval(nextStep, 1000);
+      }
+
+      function stopAuto() {
+        isAuto = false;
+        document.getElementById("btnPlay").classList.remove("paused");
+        document.getElementById("mobilePlay").innerHTML =
+          '<i class="fas fa-play"></i>';
+        clearInterval(timer);
+      }
+
+      function resetSim() {
+        stopAuto();
+        generateSteps();
+        currentStep = 0;
+        applyStep(0);
+      }
+
+      // Init
+      updateCodeArea();
+      regenerateGraph();
+    </script>
+  </body>
+</html>
